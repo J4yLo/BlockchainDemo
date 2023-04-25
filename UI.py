@@ -7,6 +7,7 @@
 
 
 from PyQt6 import QtCore, QtGui, QtWidgets
+from Demo import Blockchain
 
 
 class Ui_scr_Main(object):
