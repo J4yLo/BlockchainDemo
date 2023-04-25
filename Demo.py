@@ -1,7 +1,23 @@
 from enum import Enum
 import hashlib
 import random
+import sys
+from PyQt6.QtWidgets import QApplication
+from UI import Ui_scr_Main
+from PyQt6.QtWidgets import QMainWindow
 
+class MyApp(QMainWindow, Ui_scr_Main):
+    def __init__(self):
+        super(MyApp, self).__init__()
+        self.setupUi(self)
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    window = MyApp()
+    window.show()
+    sys.exit(app.exec_())
+
+#------------------------------------------------------------------------
 #Class for adding network nodes
 #------------------------------------------------------------------------
 #Class For Adding Nodes To The Network
