@@ -1,0 +1,90 @@
+
+-------------------------INITIALISE-----------------------------
+cd C:\Users\jason\Documents\UNI\3000\Demo\BlockchainDemo\Demo.py
+cd C:\Users\jason\Documents\UNI\3000\Demo\BlockchainDemo
+python
+from Demo import *
+-----------------------------ADD--------------------------------
+
+
+b = Blockchain()
+node1 = b.addNode(trust=10)
+node2 = b.addNode(trust=20)
+node3 = b.addNode(trust=30)
+node4 = b.addNode(trust=40)
+
+
+node1 = b.addNode(1, True, [] ,trust=10)
+node1.ID = "1"
+node2.ID = "2"
+
+b.addNewBlock("Data")
+b.addNewBlock("more Data")
+
+-----------------------------SEND----------------------------
+data = "data To Send"
+msg = Message(MessageType.Request, sender=node1, data=data)
+node1.send(node2 , msg)
+
+msg = Message(MessageType.Request, sender=node2, data=data)
+node2.send(node1 , msg)
+
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "C:\Users\jason\Documents\UNI\3000\Demo\BlockchainDemo\Demo.py", line 52, in addBlock
+    self.msgLog[self.msgNumber + 1] = [msg]
+AttributeError: 'Node' object has no attribute 'msgLog'
+
+-----------------------------Mine----------------------------
+b.mineChain()
+
+-----------------------------Print-----------------------------
+b.printBlockChain()
+
+node1.blockchain.printBlockChain()
+node2.blockchain.printBlockChain()
+b.printTrust()
+
+
+
+
+
+
+----------------------------Add to one node
+python
+from Demo import *
+blockchain = Blockchain()
+node1 = blockchain.addNode(trust=1)
+node2 = blockchain.addNode(trust=2)
+node3 = blockchain.addNode(trust=3)
+node4 = blockchain.addNode(trust=4)
+node5 = blockchain.addNode(trust=30)
+node6 = blockchain.addNode(trust=6)
+node7 = blockchain.addNode(trust=7)
+node8 = blockchain.addNode(trust=8)
+node9 = blockchain.addNode(trust=9)
+node10 = blockchain.addNode(trust=10)
+node11 = blockchain.addNode(trust=11)
+node12 = blockchain.addNode(trust=12)
+node13 = blockchain.addNode(trust=13)
+node14 = blockchain.addNode(trust=14)
+node15 = blockchain.addNode(trust=15)
+node16 = blockchain.addNode(trust=16)
+node17 = blockchain.addNode(trust=17)
+node18 = blockchain.addNode(trust=18)
+node19 = blockchain.addNode(trust=19)
+node20 = blockchain.addNode(trust=20)
+node21 = blockchain.addNode(trust=21)
+
+
+node1.addBlock("Transaction 1")
+node5.addBlock("Transaction 5")
+node21.addBlock("Transaction 1")
+node2.addBlock("Transaction 2")
+node3.addBlock("Transaction 3")
+node4.addBlock("Transaction 4")
+
+node1.addBlockToNode("ftt")
+node1.addBlockToNode("Transaction 1")
+node2.addBlockToNode("Transaction 2")
+node3.addBlockToNode("Transaction 3")
