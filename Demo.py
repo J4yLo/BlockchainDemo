@@ -2,20 +2,15 @@ from enum import Enum
 import hashlib
 import random
 import sys
-from PyQt6.QtWidgets import QApplication
+from PyQt6 import QtWidgets
+from PyQt6 import QtCore
+from PyQt6 import QtGui
+from PyQt6.QtWidgets import QApplication, QDialog, QGraphicsScene, QGraphicsView, QVBoxLayout , QWidget , QLabel
+from PyQt6.QtCore import Qt, QMimeData
 from UI import Ui_scr_Main
 from PyQt6.QtWidgets import QMainWindow
+from PyQt6.QtGui import QDrag, QPixmap, QPainter, QCursor
 
-class MyApp(QMainWindow, Ui_scr_Main):
-    def __init__(self):
-        super(MyApp, self).__init__()
-        self.setupUi(self)
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = MyApp()
-    window.show()
-    sys.exit(app.exec_())
 
 #------------------------------------------------------------------------
 #Class for adding network nodes
@@ -23,7 +18,11 @@ if __name__ == '__main__':
 #Class For Adding Nodes To The Network
 #------------------------------------------------------------------------
 class Node:
-    def __init__(self, nodeID, prime, nodes, trust=0, blockchain=None):
+    def __init__(self, nodeID, prime, nodes, trust=0, blockchain=None, name="None"):
+
+        #UI
+
+
         #Initialising the Node
         self.prime = prime
 
@@ -36,6 +35,8 @@ class Node:
         self.ID = nodeID
         self.primary = (nodeID == prime)
         self.nodes = nodes
+        self.name = name
+        
 
 
         if blockchain is None:
@@ -398,7 +399,7 @@ class Blockchain:
         #threshold = random.uniform(0, networkTrust)
         #currentNodeTrust = 0
 
-        weighted = [(node, node.trust /networkTrust) for node in primeNodes]
+        weighted = [(node, node.trust / networkTrust) for node in primeNodes]
         selected = random.choices(primeNodes, [weight for node, weight in weighted], k=1)[0]
         return selected
         
@@ -409,11 +410,11 @@ class Blockchain:
         #        return node
 
     #Syncronising Nodes with the established blockchain
-    def addNode(self, trust=0):
+    def addNode(self, trust=0, name=None):
         
         nodeID = len(self.nodes)
         prime = False
-        node = Node(nodeID, prime, self.nodes, trust, blockchain=self)
+        node = Node(nodeID, prime, self.nodes, trust, blockchain=self, name=name)
         
         self.nodes.append(node)
         return node
@@ -522,3 +523,183 @@ class Blockchain:
         for i, node in enumerate(self.nodes):
             trust[i] = node.trust
         print(trust)
+
+
+
+#UI Items
+class MyApp(QMainWindow, Ui_scr_Main):
+    b = None
+    
+    def __init__(self):
+        super(MyApp, self).__init__()
+        self.setupUi(self)
+        
+        
+
+        #List for network overview
+        self.tb_Overview.findChild(QtWidgets.QWidget, "tb_Overview")
+
+
+        #Drag and Drop peramiters for area
+        self.fr_VisualArea.setAcceptDrops(True)
+        self.fr_VisualArea.dragEnterEvent = self.dragEnterEvent
+        self.fr_VisualArea.dropEvent = self.dropEvent
+        self.fr_VisualArea.installEventFilter(self)
+
+    #Node Functions
+
+        #TEST
+        #self.label_14 = DragNodeIcon(parent=self.fr_VisualArea)
+        #self.label_14.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Valid.png"))
+
+
+
+        self.btn_AddNode.setObjectName("btn_AddNode")
+
+    #ADD NODE
+        self.btn_AddNode.clicked.connect(self.addNewNode)
+
+    def addNewNode(self):
+        name = str(self.txt_NodeName.toPlainText().strip())
+        Trust = self.txt_NodeTrust.toPlainText().strip()
+        Valid = False
+        #Variables to check for correct input 
+        
+        try:
+            Trust = int(Trust)
+            Valid = True
+
+        #Prompt Error
+        except ValueError:
+            Valid = False
+            prompt = QDialog()
+            prompt.setWindowTitle("Unable To Add Node")
+            prompt.setModal(True)
+
+            #Message
+            lbl = QLabel("Trust Must An Integer")
+            lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+
+            #Layout
+            layout = QVBoxLayout()
+            layout.addWidget(lbl)
+            prompt.setLayout(layout)
+            prompt.exec()
+        
+        if self.b is not None and Valid:
+            node = name
+            addedNode = self.b.addNode(trust=Trust, name=node)
+            self.lst_Overview.addItem(f"Node: {node} added to the network, trust value: {Trust}")
+
+            #Add to UI
+            newNode = DragNodeIcon(parent=self.fr_VisualArea)
+            newNode.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Valid.png"))
+
+            #Add Label
+            newNode.setToolTip(f"ID: {addedNode.ID}, Node: {addedNode.name}, trust: {addedNode.trust}")
+            
+            #For Drag And Drop
+            newNode.myAppInstance = self
+            newNode.show()
+
+
+            #Update List
+            self.updateNodeList()
+            
+        elif self.b is None and Valid:
+            node = name
+            self.b = Blockchain()
+            addedNode = self.b.addNode(trust=Trust, name=node)
+            self.lst_Overview.addItem(f"Node: {node} added to the network, trust value: {Trust}")
+
+            #Add to UI
+            newNode = DragNodeIcon(parent=self.fr_VisualArea)
+            newNode.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Valid.png"))
+
+            #Add Label
+            newNode.setToolTip(f"ID: {addedNode.ID}, Node: {addedNode.name}, trust: {addedNode.trust}")
+            
+            #For Drag And Drop
+            newNode.myAppInstance = self
+            newNode.show()
+
+
+            #Update List
+            self.updateNodeList()
+
+        
+            
+    
+
+        
+            
+    #Function For Moving Nodes
+        
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasImage():
+            event.acceptProposedAction()
+            
+
+    def dropEvent(self, event):
+
+        #TEST
+        #img = event.mimeData().imageData()
+        #if not img.isNull():
+        #    self.label_14.setPixmap(QtGui.QPixmap.fromImage(img))
+        #    self.label_14.move((event.position() - self.label_14.drag_start_position).toPoint())
+        #    event.acceptProposedAction()
+
+        nodeIcon = event.source()
+        if isinstance(nodeIcon, DragNodeIcon):
+            nodeIcon.move((event.position() - nodeIcon.drag_start_position).toPoint())
+            event.acceptProposedAction()
+
+
+  
+    #NODE LIST UPDATER
+    def updateNodeList(self):
+        if self.b is not None:
+            self.listWidget.clear()
+            for node in self.b.nodes:
+                self.listWidget.addItem(f"ID: {str(node.ID)}, Node: {node.name}, trust: {node.trust}")
+
+    
+
+
+
+
+class DragNodeIcon(QtWidgets.QLabel):
+    def __init__(self, parent=None):
+        super(DragNodeIcon, self).__init__(parent)
+
+
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:
+            self.drag_start_position = event.position()
+            
+            
+    def mouseMoveEvent(self, event):
+        if not (event.buttons() & QtCore.Qt.MouseButton.LeftButton):
+            return
+        if (event.position() - self.drag_start_position).manhattanLength() < QApplication.startDragDistance():
+            return
+        
+        drag = QtGui.QDrag(self)
+        mimeData = QtCore.QMimeData()
+        mimeData.setImageData(self.pixmap().toImage())
+        drag.setMimeData(mimeData)
+
+        pixmap = QPixmap(self.size())
+        self.render(pixmap)
+        drag.setPixmap(pixmap)
+        drag.setHotSpot(event.pos())
+
+
+        drag.exec(Qt.DropAction.MoveAction)
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    window = MyApp()
+    window.show()
+    sys.exit(app.exec())
