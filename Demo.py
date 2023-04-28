@@ -2,14 +2,14 @@ from enum import Enum
 import hashlib
 import random
 import sys
-from PyQt6 import QtWidgets
+from PyQt6 import QtWidgets, sip
 from PyQt6 import QtCore
 from PyQt6 import QtGui
 from PyQt6.QtWidgets import QApplication, QDialog, QGraphicsScene, QGraphicsView, QVBoxLayout , QWidget , QLabel
 from PyQt6.QtCore import Qt, QMimeData
 from UI import Ui_scr_Main
 from PyQt6.QtWidgets import QMainWindow
-from PyQt6.QtGui import QDrag, QPixmap, QPainter, QCursor
+from PyQt6.QtGui import QDrag, QPixmap, QPainter, QCursor, QAction
 
 
 #------------------------------------------------------------------------
@@ -362,6 +362,17 @@ class Blockchain:
         self.primeNode = None
         self.view = 0
 
+    def removeNode(self, node):
+        if node in self.nodes:
+            self.nodes.remove(node)
+
+    #Get Node by ID
+    def getNodeByID(self, nodeID):
+        for node in self.nodes:
+            if node.ID == nodeID:
+                return node
+        return None
+    
     #Get Prime Node
     def getPrimeNodes(self):
         sortedNodes = sorted(self.nodes, key=lambda node: node.trust, reverse=True)
@@ -460,13 +471,14 @@ class Blockchain:
     def mineChain(self):
         #Check If the chain has been comprimised
         #If chain is broken trust decreases otherwise mining persues
-
+        minedBlocks = []
         brokenLink = self.checkIfBroken()
         if brokenLink is None:
             for node in self.nodes:
 
                 #Increase trust after sucessful Mine
                 node.trust +=1
+            minedBlocks.append("All Blocks have been Mined")
             pass
         else :
             for block in self.chain[brokenLink.id:]:
@@ -474,13 +486,16 @@ class Blockchain:
                 prevHash = block.previousHash
                 self.mineBlock(block)
 
-                #Decrease trust after Unsucessful Mine
+
                 if block.previousHash == prevHash: 
                     for node in self.nodes:
                         node.trust +=1
+                    minedBlocks.append(f"Mined Block: {block.id}, Nonce: {block.nonce}, data: {block.data}, Hash: {block.hashcode}, previous hash: {block.previousHash} ")
                 else:
                     for node in self.nodes:
                         node.trust -=1
+                    minedBlocks.append(f"Block with ID of {block.id}, Failed To Mine")
+        return "\n".join(minedBlocks)
 
     #Function to mine block
     def mineBlock(self, block):
@@ -556,10 +571,123 @@ class MyApp(QMainWindow, Ui_scr_Main):
         #For highlighting elements after they been clicked in the list
         self.listWidget.itemClicked.connect(self.onListItemClick)
 
+        self.btn_AddNode.setObjectName("btn_AddNode")
+
+    #ADD NODE
+        self.btn_AddNode.clicked.connect(self.addNewNode)
+
+    #ADD BLOCK 
+        self.btn_AddBlockToNode.clicked.connect(self.addBlockToNode)
+    #Mine Block
+        self.btn_Mine.clicked.connect(self.mineBlocks)
+
+    #----------------------------------------
+    #Block Functions
+    #----------------------------------------
+        
+    def addBlockToNode(self):
+        ID = str(self.txt_NodeID.toPlainText().strip())
+        Data = self.txt_blkData.toPlainText().strip()
+
+        if not Data:
+            Data = "None"
+        Valid = False
+
+        #Check for correct input 
+        try:
+            ID = int(ID)
+            Valid = True
+
+        #Prompt Error
+        except ValueError:
+            Valid = False
+            prompt = QDialog()
+            prompt.setWindowTitle("Unable To Add Block")
+            prompt.setModal(True)
+
+            #Message
+            lbl = QLabel("ID Must An Integer and must exist on the network")
+            lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+
+            #Layout
+            layout = QVBoxLayout()
+            layout.addWidget(lbl)
+            prompt.setLayout(layout)
+            prompt.exec()
+        
+        #Check to see if block chain exists
+        if self.b is not None and Valid:
+            
+            node = self.b.getNodeByID(ID)
+            if node:
+                node.addBlockToNode(Data)
+                self.lst_Overview.addItem(f"ID: {ID}, Block added to Node: {node.name}, with data of {Data}")
+            
+            #Error if node dosnt exist
+            else:
+                Valid = False
+                prompt = QDialog()
+                prompt.setWindowTitle("Node Dosnt Exist")
+                prompt.setModal(True)
+
+                #Message
+                lbl = QLabel("Node isnt available")
+                lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+
+                #Layout
+                layout = QVBoxLayout()
+                layout.addWidget(lbl)
+                prompt.setLayout(layout)
+                prompt.exec()
+
+
+        # If blockchain has no entries
+        elif self.b is None:
+            Valid = False
+            prompt = QDialog()
+            prompt.setWindowTitle("Unable To Add Block")
+            prompt.setModal(True)
+
+            #Message
+            lbl = QLabel("No Nodes Available")
+            lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+
+            #Layout
+            layout = QVBoxLayout()
+            layout.addWidget(lbl)
+            prompt.setLayout(layout)
+            prompt.exec()
+
+    #MINE CHAIN
+    def mineBlocks(self):
+        #Check to see if block chain exists
+        if self.b is not None:
+            result = self.b.mineChain()
+            self.lst_Overview.addItem(result)
+
+
+        # If blockchain has no entries
+        elif self.b is None:
+            prompt = QDialog()
+            prompt.setWindowTitle("Unable To Mine")
+            prompt.setModal(True)
+
+            #Message
+            lbl = QLabel("No Blocks Available to mine")
+            lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+
+            #Layout
+            layout = QVBoxLayout()
+            layout.addWidget(lbl)
+            prompt.setLayout(layout)
+            prompt.exec()
+
+
 
     
-
+    #----------------------------------------
     #Node Functions
+    #----------------------------------------
 
         #TEST
         #self.label_14 = DragNodeIcon(parent=self.fr_VisualArea)
@@ -567,10 +695,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
 
 
-        self.btn_AddNode.setObjectName("btn_AddNode")
-
-    #ADD NODE
-        self.btn_AddNode.clicked.connect(self.addNewNode)
+        
 
     
     def addNewNodeHelper(self, node, Trust):  
@@ -580,7 +705,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
             
 
             #Add to UI
-            newNode = DragNodeIcon(parent=self.fr_VisualArea)
+            newNode = DragNodeIcon(parent=self.fr_VisualArea, blockchain=self.b)
             newNode.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Valid.png"))
 
             newNode.ID = addedNode.ID
@@ -604,7 +729,17 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
             
             
+    def removeNode(self, nodeIcon):
+        #Remove from Block Chain
+            node = self.b.getNodeByID(nodeIcon.ID)
+            self.b.removeNode(node)
 
+            if nodeIcon in self.nodeIconMappings:
+                list_item = self.nodeIconMappings.pop(nodeIcon)
+                row = self.listWidget.row(list_item)
+                self.listWidget.takeItem(row)
+            nodeIcon.deleteLater()
+            
 
             
 
@@ -685,7 +820,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
     #Update Selected Node
     def updateSelectedIcon(self, selected):
         #Highlight Selected Node - UI
-            if self.selected_icon is not None and self.selected_icon != selected:
+            if self.selected_icon is not None and self.selected_icon != selected and not sip.isdeleted(self.selected_icon):
                 
                 self.selected_icon.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Valid.png"))
                 self.nodeIconMappings[self.selected_icon].setSelected(False)
@@ -724,15 +859,28 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
 
 class DragNodeIcon(QtWidgets.QLabel):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, blockchain=None):
         super(DragNodeIcon, self).__init__(parent)
+        self.contextMenu = QtWidgets.QMenu()
+        self.b = blockchain
 
+        #Add Option To Remove
+        self.removeAction = QAction("Remove Node", self)
+        self.removeAction.triggered.connect(lambda: self.myAppInstance.removeNode(self))
+        self.contextMenu.addAction(self.removeAction)
+        
+        
+            
     
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
         if event.button() == QtCore.Qt.MouseButton.LeftButton:
             self.drag_start_position = event.position()
             self.window().updateSelectedIcon(self)
+        if event.button() == QtCore.Qt.MouseButton.RightButton:
+            self.window().updateSelectedIcon(self)
+            self.contextMenu.exec(QCursor.pos())
+            
 
 
             
