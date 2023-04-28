@@ -4,6 +4,8 @@ cd C:\Users\jason\Documents\UNI\3000\Demo\BlockchainDemo\Demo.py
 cd C:\Users\jason\Documents\UNI\3000\Demo\BlockchainDemo
 python
 from Demo import *
+
+python -m PyQt6.uic.pyuic -o UI.py -x Home.ui
 -----------------------------ADD--------------------------------
 
 
@@ -88,3 +90,32 @@ node1.addBlockToNode("ftt")
 node1.addBlockToNode("Transaction 1")
 node2.addBlockToNode("Transaction 2")
 node3.addBlockToNode("Transaction 3")
+
+------------------------CODE
+MOVE NODE ALTERNITIVE
+def eventFilter(self, obj, event):
+        if obj == self.fr_VisualArea:
+            if event.type() == QtCore.QEvent.DragEnter:
+                if event.mimeData().hasImage():
+                    event.acceptProposedAction()
+                    return True
+            elif event.type() == QtCore.QEvent.Drop:
+                img = event.mimeData().hasImage()
+                if not img.isNull():
+                    self.setPixmap(QtGui.QPixmap.fromImage(img))
+                    self.move((event.position() - self.drag_start_position).toPoint())
+                    event.acceptProposedAction()
+                    return True
+            return super(MyApp, self.eventFilter(obj, event))
+----
+OLD Move Node
+def dragEnterEvent(self, event):
+        if event.mimeData().hasImage():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        img = event.mimeData().imageData()
+        if not img.isNull():
+            self.setPixmap(QtGui.QPixmap.fromImage(img))
+            self.move((event.position() - self.drag_start_position).toPoint())
+            event.acceptProposedAction()

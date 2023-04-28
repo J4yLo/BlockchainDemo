@@ -7,7 +7,6 @@
 
 
 from PyQt6 import QtCore, QtGui, QtWidgets
-from Demo import Blockchain
 
 
 class Ui_scr_Main(object):
@@ -38,7 +37,8 @@ class Ui_scr_Main(object):
         self.tb_Overview.setObjectName("tb_Overview")
         self.Overview = QtWidgets.QWidget()
         self.Overview.setObjectName("Overview")
-        self.lst_Overview = QtWidgets.QListView(parent=self.Overview)
+        self.lst_Overview = QtWidgets.QListWidget(parent=self.Overview)
+        self.lst_Overview.setEnabled(True)
         self.lst_Overview.setGeometry(QtCore.QRect(0, 0, 1311, 101))
         self.lst_Overview.setObjectName("lst_Overview")
         self.tb_Overview.addTab(self.Overview, "")

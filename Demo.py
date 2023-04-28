@@ -529,10 +529,17 @@ class Blockchain:
 #UI Items
 class MyApp(QMainWindow, Ui_scr_Main):
     b = None
+    selected_icon = None
     
     def __init__(self):
         super(MyApp, self).__init__()
         self.setupUi(self)
+
+        #Mapping to tie UI lists with Interactive elements
+        self.nodeIconMappings = {}
+        self.nodeList = {}
+
+        
         
         
 
@@ -546,6 +553,12 @@ class MyApp(QMainWindow, Ui_scr_Main):
         self.fr_VisualArea.dropEvent = self.dropEvent
         self.fr_VisualArea.installEventFilter(self)
 
+        #For highlighting elements after they been clicked in the list
+        self.listWidget.itemClicked.connect(self.onListItemClick)
+
+
+    
+
     #Node Functions
 
         #TEST
@@ -558,6 +571,42 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
     #ADD NODE
         self.btn_AddNode.clicked.connect(self.addNewNode)
+
+    
+    def addNewNodeHelper(self, node, Trust):  
+            addedNode = self.b.addNode(trust=Trust, name=node)
+            self.lst_Overview.addItem(f"ID:{addedNode.ID}: Name: {node} added to the network, trust value: {Trust}")
+            self.listWidget.addItem(f"ID: {str(addedNode.ID)}, Node: {node}, trust: {Trust}")
+            
+
+            #Add to UI
+            newNode = DragNodeIcon(parent=self.fr_VisualArea)
+            newNode.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Valid.png"))
+
+            newNode.ID = addedNode.ID
+
+            #Associate with the UI
+            list_item = self.lst_Overview.item(self.lst_Overview.count() - 1)
+            self.nodeIconMappings[newNode] = list_item
+
+            #Update List
+            nodelist = self.listWidget.item(self.listWidget.count() - 1)
+            self.nodeIconMappings[newNode] = nodelist
+
+            #Add Label
+            newNode.setToolTip(f"ID: {addedNode.ID}, Node: {addedNode.name}, trust: {addedNode.trust}")
+            
+            #For Drag And Drop
+            newNode.myAppInstance = self
+            newNode.show()
+
+            
+
+            
+            
+
+
+            
 
     def addNewNode(self):
         name = str(self.txt_NodeName.toPlainText().strip())
@@ -588,45 +637,19 @@ class MyApp(QMainWindow, Ui_scr_Main):
         
         if self.b is not None and Valid:
             node = name
-            addedNode = self.b.addNode(trust=Trust, name=node)
-            self.lst_Overview.addItem(f"Node: {node} added to the network, trust value: {Trust}")
-
-            #Add to UI
-            newNode = DragNodeIcon(parent=self.fr_VisualArea)
-            newNode.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Valid.png"))
-
-            #Add Label
-            newNode.setToolTip(f"ID: {addedNode.ID}, Node: {addedNode.name}, trust: {addedNode.trust}")
-            
-            #For Drag And Drop
-            newNode.myAppInstance = self
-            newNode.show()
+            self.addNewNodeHelper(node, Trust)
 
 
             #Update List
-            self.updateNodeList()
+            #self.updateNodeList()
             
         elif self.b is None and Valid:
-            node = name
             self.b = Blockchain()
-            addedNode = self.b.addNode(trust=Trust, name=node)
-            self.lst_Overview.addItem(f"Node: {node} added to the network, trust value: {Trust}")
-
-            #Add to UI
-            newNode = DragNodeIcon(parent=self.fr_VisualArea)
-            newNode.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Valid.png"))
-
-            #Add Label
-            newNode.setToolTip(f"ID: {addedNode.ID}, Node: {addedNode.name}, trust: {addedNode.trust}")
+            node = name
+            self.addNewNodeHelper(node, Trust)
             
-            #For Drag And Drop
-            newNode.myAppInstance = self
-            newNode.show()
-
-
-            #Update List
-            self.updateNodeList()
-
+    
+    
         
             
     
@@ -654,16 +677,48 @@ class MyApp(QMainWindow, Ui_scr_Main):
             nodeIcon.move((event.position() - nodeIcon.drag_start_position).toPoint())
             event.acceptProposedAction()
 
+    
 
   
-    #NODE LIST UPDATER
-    def updateNodeList(self):
-        if self.b is not None:
-            self.listWidget.clear()
-            for node in self.b.nodes:
-                self.listWidget.addItem(f"ID: {str(node.ID)}, Node: {node.name}, trust: {node.trust}")
 
-    
+
+    #Update Selected Node
+    def updateSelectedIcon(self, selected):
+        #Highlight Selected Node - UI
+            if self.selected_icon is not None and self.selected_icon != selected:
+                
+                self.selected_icon.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Valid.png"))
+                self.nodeIconMappings[self.selected_icon].setSelected(False)
+                
+
+            selected.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Selected.png"))
+            self.nodeIconMappings[selected].setSelected(True)
+            self.selected_icon = selected
+
+            #Highlight its entry in the node list
+            selectedNode = None
+            for node in self.b.nodes:
+                if node.ID == selected.ID:
+                    selectedNode = node
+                    break
+
+            if selectedNode is not None:
+                index = self.b.nodes.index(selectedNode)
+                item = self.listWidget.item(index)
+                item.setSelected(True)
+
+    #ListView Functions
+    def onListItemClick(self, item):
+        selectedNode = None
+        for node, entry in self.nodeIconMappings.items():
+            if entry == item:
+                
+                selectedNode = node
+                break
+
+        if selectedNode is not None:
+            self.updateSelectedIcon(selectedNode)
+            
 
 
 
@@ -672,11 +727,14 @@ class DragNodeIcon(QtWidgets.QLabel):
     def __init__(self, parent=None):
         super(DragNodeIcon, self).__init__(parent)
 
+    
 
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.MouseButton.LeftButton:
             self.drag_start_position = event.position()
-            
+            self.window().updateSelectedIcon(self)
+
+
             
     def mouseMoveEvent(self, event):
         if not (event.buttons() & QtCore.Qt.MouseButton.LeftButton):
