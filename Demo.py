@@ -5,7 +5,7 @@ import sys
 from PyQt6 import QtWidgets, sip
 from PyQt6 import QtCore
 from PyQt6 import QtGui
-from PyQt6.QtWidgets import QApplication, QDialog, QGraphicsScene, QGraphicsView, QVBoxLayout , QWidget , QLabel
+from PyQt6.QtWidgets import QApplication, QDialog, QGraphicsScene, QGraphicsView, QTableWidget, QVBoxLayout , QWidget , QLabel
 from PyQt6.QtCore import Qt, QMimeData
 from UI import Ui_scr_Main
 from PyQt6.QtWidgets import QMainWindow
@@ -552,7 +552,6 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
         #Mapping to tie UI lists with Interactive elements
         self.nodeIconMappings = {}
-        self.nodeList = {}
 
         
         
@@ -560,6 +559,12 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
         #List for network overview
         self.tb_Overview.findChild(QtWidgets.QWidget, "tb_Overview")
+
+        #list for blockchain elements
+        self.blockchainModel = QtGui.QStandardItemModel()
+        self.tbl_Blockchain.setModel(self.blockchainModel)
+
+        #List For Messages sent during byzentine fault tollerence
 
 
         #Drag and Drop peramiters for area
@@ -622,7 +627,8 @@ class MyApp(QMainWindow, Ui_scr_Main):
             if node:
                 node.addBlockToNode(Data)
                 self.lst_Overview.addItem(f"ID: {ID}, Block added to Node: {node.name}, with data of {Data}")
-            
+                self.updateBlockChainTable()
+
             #Error if node dosnt exist
             else:
                 Valid = False
@@ -664,6 +670,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
         if self.b is not None:
             result = self.b.mineChain()
             self.lst_Overview.addItem(result)
+            self.updateBlockChainTable()
 
 
         # If blockchain has no entries
@@ -682,9 +689,24 @@ class MyApp(QMainWindow, Ui_scr_Main):
             prompt.setLayout(layout)
             prompt.exec()
 
+    def updateBlockChainTable(self):
+        if self.b is not None:
+            self.blockchainModel.clear()
+            self.blockchainModel.setRowCount(len(self.b.chain))
+            self.blockchainModel.setColumnCount(5)
+            headers = ["Block ID", "Data", "Nonce", "Hash", "Previous Hash"]
+            self.blockchainModel.setHorizontalHeaderLabels(headers)
 
-
-    
+            for row, block in enumerate(self.b.chain):
+                self.blockchainModel.setItem(row, 0, QtGui.QStandardItem(str(block.id)))
+                self.blockchainModel.setItem(row, 1, QtGui.QStandardItem(str(block.data)))
+                self.blockchainModel.setItem(row, 2, QtGui.QStandardItem(str(block.nonce)))
+                self.blockchainModel.setItem(row, 3, QtGui.QStandardItem(str(block.hashcode)))
+                self.blockchainModel.setItem(row, 4, QtGui.QStandardItem(str(block.previousHash)))
+            self.tbl_Blockchain.resizeColumnsToContents()
+        else:
+            self.blockchainModel.clear()
+            
     #----------------------------------------
     #Node Functions
     #----------------------------------------
