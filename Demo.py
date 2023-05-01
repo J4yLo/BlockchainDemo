@@ -8,7 +8,7 @@ from PyQt6 import QtGui
 from PyQt6.QtWidgets import QApplication, QDialog, QGraphicsScene, QGraphicsView, QTableWidget, QTableWidgetItem, QVBoxLayout , QWidget , QLabel
 from PyQt6.QtCore import QTime, QTimer, Qt, QMimeData
 from UI import Ui_scr_Main
-from Properties import Ui_Properties
+from Properites import Ui_Properties
 from PyQt6.QtWidgets import QMainWindow
 from PyQt6.QtGui import QDrag, QPixmap, QPainter, QCursor, QAction
 import json
@@ -23,7 +23,7 @@ bftMessages = []
 #Class For Adding Nodes To The Network
 #------------------------------------------------------------------------
 class Node:
-    def __init__(self, nodeID, prime, nodes, trust=0, blockchain=None, name="None", ui=None):
+    def __init__(self, nodeID, prime, nodes, ntwTimeAdded, trust=0, blockchain=None, name="None", ui=None, timeAdded=None):
 
 
 
@@ -41,6 +41,8 @@ class Node:
         self.primary = (nodeID == prime)
         self.nodes = nodes
         self.name = name
+        self.ntwTimeAdded = ntwTimeAdded
+        self.timeAdded = datetime.now()
         
 
 
@@ -402,12 +404,13 @@ class Message:
 #Class for attributing values for a block
 #------------------------------------------------------------------------
 class Block:
-    def __init__(self, id, nonce, data, hashcode, previousHash):
+    def __init__(self, id, nonce, data, hashcode, previousHash, timeAdded=None):
         self.id=id
         self.nonce=nonce
         self.data=data
         self.hashcode=hashcode
         self.previousHash=previousHash
+        self.timeAdded = datetime.now().strftime("%H:%M:%S")
     
     def getStringVal(self):
         return self.id, self.nonce, self.data, self.hashcode, self.previousHash
@@ -495,11 +498,11 @@ class Blockchain:
         #        return node
 
     #Syncronising Nodes with the established blockchain
-    def addNode(self, trust=0, name=None):
+    def addNode(self, ntwTimeAdded, trust=0, name=None):
         
         nodeID = len(self.nodes)
         prime = False
-        node = Node(nodeID, prime, self.nodes, trust, blockchain=self, name=name)
+        node = Node(nodeID, prime, self.nodes, ntwTimeAdded, trust, blockchain=self, name=name)
         
         self.nodes.append(node)
         print(f"Node: {node.ID} now added and synced to the network")
@@ -673,9 +676,50 @@ class Blockchain:
 
 
 #UI Items
+#----------------------------------------
+#Properties Tab
+#----------------------------------------
+class PropertiesDialog(QMainWindow, Ui_Properties):
+    def __init__ (self, my_app_instance, NodeID=None):
+        super().__init__()
+        self.setupUi(self)
+
+        #Get Variables
+        self.NodeID = NodeID
+        self.my_app_instance = my_app_instance
+
+        self.setVariables()
+
+        
+    
+    def setVariables(self):
+        if self.NodeID is not None and self.my_app_instance.b is not None:
+            selectedNode = self.my_app_instance.b.getNodeByID(self.NodeID)
+
+
+            #Code for Getting Static Variables
+            if selectedNode:
+                #Get Variables
+                name = str(selectedNode.name)
+                id = str(selectedNode.ID)
+                trust = str(selectedNode.trust)
+                addedNtwTime = selectedNode.ntwTimeAdded
+                timeadded = str(selectedNode.timeAdded)
+                
+                #Set Variables
+                self.prp_NodeName.setText(name)
+                self.lbl_prop_ID.setText(id)
+                self.lbl_prop_Trust.setText(trust)
+                self.lbl_prop_time.setText(timeadded)
+                self.lbl_prop_networkTime.setText(addedNtwTime)
+        
+    
+
+
 class MyApp(QMainWindow, Ui_scr_Main):
     b = None
     selected_icon = None
+    
 
     
     def __init__(self):
@@ -691,7 +735,8 @@ class MyApp(QMainWindow, Ui_scr_Main):
         self.initStopwatch()
         
             
-
+        #Properties Window
+        self.propertiesWindow = None
         
         
         
@@ -779,9 +824,11 @@ class MyApp(QMainWindow, Ui_scr_Main):
             
             node = self.b.getNodeByID(ID)
             if node:
-                node.addBlock(Data)
-                Time = datetime.now().strftime("%H:%M:%S")
                 ntwTime = self.stopwatch.toString("hh:mm:ss")
+                Time = datetime.now().strftime("%H:%M:%S")
+                node.addBlock(Data)
+                
+                
                 self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime} ID: {ID}, Block added to Node: {node.name}, with data of {Data}")
                 self.updateBlockChainTable()
                 self.updateMessagesTable()
@@ -902,7 +949,8 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
     
     def addNewNodeHelper(self, node, Trust):  
-            addedNode = self.b.addNode(trust=Trust, name=node)
+            ntwTime = self.stopwatch.toString("hh:mm:ss")
+            addedNode = self.b.addNode(ntwTimeAdded=ntwTime, trust=Trust, name=node)
             Time = datetime.now().strftime("%H:%M:%S")
             ntwTime = self.stopwatch.toString("hh:mm:ss")
             self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time:  {ntwTime} - Name: {node} - ID: {addedNode.ID} - trust value: {Trust} - ACTION: added to the network")
@@ -1060,8 +1108,13 @@ class MyApp(QMainWindow, Ui_scr_Main):
         if selectedNode is not None:
             self.updateSelectedIcon(selectedNode)
             
-
-
+    #Function to open properties menu
+    def propertiesAction(self):
+        if self.propertiesWindow is None or not self.propertiesWindow.isVisible():
+            self.propertiesWindow = PropertiesDialog(self, NodeID = self.selected_icon.ID)
+        self.propertiesWindow.show()
+        self.propertiesWindow.raise_()
+        self.propertiesWindow.activateWindow()
 
 
 class DragNodeIcon(QtWidgets.QLabel):
@@ -1078,7 +1131,7 @@ class DragNodeIcon(QtWidgets.QLabel):
 
         #Add Properties Option
         self.propertiesAction = QAction("Properties", self)
-        self.propertiesAction.triggered.connect(lambda: self.myAppInstance.propertiesAction(self))
+        self.propertiesAction.triggered.connect(lambda: self.myAppInstance.propertiesAction())
         self.contextMenu.addAction(self.propertiesAction)
         
 
