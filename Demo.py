@@ -283,7 +283,8 @@ class Node:
 
                 #Broadcast Block
                 if msg.data['block'] not in self.blockchain.chain:
-                    self.blockchain.chain.append(msg.data['block'])
+                    if not self.blockchain.hasBlock(msg.data['block']):
+                        self.blockchain.chain.append(msg.data['block'])
 
                 #reset commits and prepares
                 self.prepare = []
@@ -412,6 +413,13 @@ class Blockchain:
         if node in self.nodes:
             self.nodes.remove(node)
 
+    #Check to see if block already exists
+    def hasBlock(self, block):
+        for i in self.chain:
+            if i.hashcode == block.hashcode:
+                return True
+        return False
+
     #Get Node by ID
     def getNodeByID(self, nodeID):
         for node in self.nodes:
@@ -421,13 +429,12 @@ class Blockchain:
     
     #Get Prime Node
     def getPrimeNodes(self):
+        #sort the nodes in decending order based upon their trust
         sortedNodes = sorted(self.nodes, key=lambda node: node.trust, reverse=True)
-        if len(self.nodes) < 40:
-            bestNodes = max(1, int(len(self.nodes)))
-            return sortedNodes[:bestNodes]
-        else:
-            bestNodes = max(1, int(len(self.nodes) * 0.1))
-            return sortedNodes[:bestNodes]
+
+        #Get 10% of nodes with highest trust
+        bestNodes = max(4, int(len(self.nodes) * 0.1))
+        return sortedNodes[:bestNodes]
 
     def backupPrimeNode(self):
         networkTrust = sum(node.trust for node in self.nodes)
