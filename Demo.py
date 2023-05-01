@@ -729,6 +729,8 @@ class MyApp(QMainWindow, Ui_scr_Main):
     #----------------------------------------
     #Ui Functions
     #----------------------------------------
+
+    #---------------STOPWATCH-----------------
     def initStopwatch(self):
         self.timer.timeout.connect(self.updateStopwatch)
         self.timer.start(1000)
@@ -777,7 +779,9 @@ class MyApp(QMainWindow, Ui_scr_Main):
             node = self.b.getNodeByID(ID)
             if node:
                 node.addBlock(Data)
-                self.lst_Overview.addItem(f"ID: {ID}, Block added to Node: {node.name}, with data of {Data}")
+                Time = datetime.now().strftime("%H:%M:%S")
+                ntwTime = self.stopwatch.toString("hh:mm:ss")
+                self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime} ID: {ID}, Block added to Node: {node.name}, with data of {Data}")
                 self.updateBlockChainTable()
                 self.updateMessagesTable()
 
@@ -868,14 +872,15 @@ class MyApp(QMainWindow, Ui_scr_Main):
             self.tbl_Messages.clear()
             self.tbl_Messages.setRowCount(len(bftMessages))
             self.tbl_Messages.setColumnCount(4)
-            headers = ["Time","Type", "Sender ID", "Data"]
+            headers = ["Time", "Network Time","Type", "Sender ID", "Data"]
             self.tbl_Messages.setHorizontalHeaderLabels(headers)
 
             for row, msg in enumerate(bftMessages):
                 self.tbl_Messages.setItem(row, 0, QTableWidgetItem(str(msg.datetime.strftime("%H:%M:%S"))))
-                self.tbl_Messages.setItem(row, 1, QTableWidgetItem(str(msg.type)))
-                self.tbl_Messages.setItem(row, 2, QTableWidgetItem(str(msg.sender)))
-                self.tbl_Messages.setItem(row, 3, QTableWidgetItem(str(msg.data)))
+                self.tbl_Messages.setItem(row, 1, QTableWidgetItem(str(self.stopwatch.toString("hh:mm:ss"))))
+                self.tbl_Messages.setItem(row, 2, QTableWidgetItem(str(msg.type)))
+                self.tbl_Messages.setItem(row, 3, QTableWidgetItem(str(msg.sender)))
+                self.tbl_Messages.setItem(row, 4, QTableWidgetItem(str(msg.data)))
 
 
             self.tbl_Messages.resizeColumnsToContents()
@@ -897,8 +902,10 @@ class MyApp(QMainWindow, Ui_scr_Main):
     
     def addNewNodeHelper(self, node, Trust):  
             addedNode = self.b.addNode(trust=Trust, name=node)
-            self.lst_Overview.addItem(f"ID:{addedNode.ID}: Name: {node} added to the network, trust value: {Trust}")
-            self.lst_Overview.addItem(f"ID:{addedNode.ID}: Name: {node} Synced To The Network")
+            Time = datetime.now().strftime("%H:%M:%S")
+            ntwTime = self.stopwatch.toString("hh:mm:ss")
+            self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time:  {ntwTime} - Name: {node} - ID: {addedNode.ID} - trust value: {Trust} - ACTION: added to the network")
+            self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time:  {ntwTime} - Name: {node} - ID:{addedNode.ID} - ACTION: Synced To The Network")
             self.listWidget.addItem(f"ID: {str(addedNode.ID)}, Node: {node}, trust: {Trust}")
             
 
