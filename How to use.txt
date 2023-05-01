@@ -2,7 +2,7 @@
 -------------------------INITIALISE-----------------------------
 cd C:\Users\jason\Documents\UNI\3000\Demo\BlockchainDemo\Demo.py
 cd C:\Users\jason\Documents\UNI\3000\Demo\BlockchainDemo
-python
+python Demo.py
 from Demo import *
 
 python -m PyQt6.uic.pyuic -o UI.py -x Home.ui
@@ -78,6 +78,100 @@ node19 = blockchain.addNode(trust=19)
 node20 = blockchain.addNode(trust=20)
 node21 = blockchain.addNode(trust=21)
 
+node1.blockchain.printBlockChain()
+node5.addBlock("Transaction 5")
+node1.blockchain.printBlockChain()
+node2.blockchain.printBlockChain()
+node3.blockchain.printBlockChain()
+exit()
+
+
+----------------------------Add to 40
+python
+from Demo import *
+blockchain = Blockchain()
+node1 = blockchain.addNode(trust=1)
+node2 = blockchain.addNode(trust=2)
+node3 = blockchain.addNode(trust=3)
+node4 = blockchain.addNode(trust=4)
+node5 = blockchain.addNode(trust=30)
+node6 = blockchain.addNode(trust=6)
+node7 = blockchain.addNode(trust=7)
+node8 = blockchain.addNode(trust=8)
+node9 = blockchain.addNode(trust=9)
+node10 = blockchain.addNode(trust=10)
+node11 = blockchain.addNode(trust=11)
+node12 = blockchain.addNode(trust=12)
+node13 = blockchain.addNode(trust=13)
+node14 = blockchain.addNode(trust=14)
+node15 = blockchain.addNode(trust=15)
+node16 = blockchain.addNode(trust=16)
+node17 = blockchain.addNode(trust=17)
+node18 = blockchain.addNode(trust=18)
+node19 = blockchain.addNode(trust=19)
+node20 = blockchain.addNode(trust=20)
+node21 = blockchain.addNode(trust=21)
+node22 = blockchain.addNode(trust=1)
+node23 = blockchain.addNode(trust=2)
+node24 = blockchain.addNode(trust=3)
+node25 = blockchain.addNode(trust=4)
+node26 = blockchain.addNode(trust=5)
+node27 = blockchain.addNode(trust=6)
+node28 = blockchain.addNode(trust=7)
+node29 = blockchain.addNode(trust=8)
+node30 = blockchain.addNode(trust=9)
+node31 = blockchain.addNode(trust=1)
+node32 = blockchain.addNode(trust=1)
+node33 = blockchain.addNode(trust=1)
+node34 = blockchain.addNode(trust=1)
+node35 = blockchain.addNode(trust=1)
+node36 = blockchain.addNode(trust=1)
+node37 = blockchain.addNode(trust=6)
+node38 = blockchain.addNode(trust=7)
+node39 = blockchain.addNode(trust=8)
+node40 = blockchain.addNode(trust=1)
+node41 = blockchain.addNode(trust=2)
+node42 = blockchain.addNode(trust=2)
+
+node1.blockchain.printBlockChain()
+node5.addBlock("Transaction 5")
+node1.blockchain.printBlockChain()
+node2.blockchain.printBlockChain()
+node3.blockchain.printBlockChain()
+exit()
+
+
+
+------------------------------
+python
+from Demo import *
+blockchain = Blockchain()
+node1 = blockchain.addNode(trust=1)
+node2 = blockchain.addNode(trust=2)
+node3 = blockchain.addNode(trust=3)
+node4 = blockchain.addNode(trust=4)
+node5 = blockchain.addNode(trust=30)
+node6 = blockchain.addNode(trust=6)
+node7 = blockchain.addNode(trust=7)
+node8 = blockchain.addNode(trust=8)
+node9 = blockchain.addNode(trust=9)
+node10 = blockchain.addNode(trust=10)
+node11 = blockchain.addNode(trust=11)
+node12 = blockchain.addNode(trust=12)
+node13 = blockchain.addNode(trust=13)
+node14 = blockchain.addNode(trust=14)
+node15 = blockchain.addNode(trust=15)
+node16 = blockchain.addNode(trust=16)
+node17 = blockchain.addNode(trust=17)
+node18 = blockchain.addNode(trust=18)
+node19 = blockchain.addNode(trust=19)
+node20 = blockchain.addNode(trust=20)
+node21 = blockchain.addNode(trust=21)
+node1.blockchain.printBlockChain()
+node5.addBlock("Transaction 5")
+node1.blockchain.printBlockChain()
+node1.blockchain.printBlockChain()
+exit()
 
 node1.addBlock("Transaction 1")
 node5.addBlock("Transaction 5")
@@ -119,3 +213,37 @@ def dragEnterEvent(self, event):
             self.setPixmap(QtGui.QPixmap.fromImage(img))
             self.move((event.position() - self.drag_start_position).toPoint())
             event.acceptProposedAction()
+----
+OLD SELECT
+
+
+------
+verify and add block
+    #Verify the block
+    def addverifyBlock(self, data):
+        id = len(self.chain)
+        nonce = 0
+    
+        #Check to see if the block is index 0, Makes this the genesis block
+        #If false then value of the previous hash is equal to the output of
+        #The previous block
+        if len (self.chain)==0:
+            previousHash = "0"
+        else:
+            previousHash = self.chain[-1].hashcode
+        
+        myHash = hashlib.sha256(str(data).encode()).hexdigest()
+        
+        #Code to Initiate the block
+        block = Block(id, nonce, data, myHash, previousHash)
+        self.chain.append(block)
+        return block
+--------Errors
+the block chain gets appended twice Node 18 recieved msg: 19
+Node 18 recieved reply: REPLY: {'type': 'Prepare', 'view': 0, 'block': <Demo.Block object at 0x000001EBAD8479D0>, 'sequence': 1, 'sender': 18, 'data': '{"id": 0, "nonce": 234585, "data": "Transaction 5", "hashcode": "0000d65d3409017e8339d87f8d0e9ac3775323ee4271394fafc0edf62f7a0842", "previousHash": "0"}'} successful commit!
+>>> node1.blockchain.printBlockChain()
+{0: (0, 234585, 'Transaction 5', '0000d65d3409017e8339d87f8d0e9ac3775323ee4271394fafc0edf62f7a0842', '0'), 1: (0, 234585, 'Transaction 5', '0000d65d3409017e8339d87f8d0e9ac3775323ee4271394fafc0edf62f7a0842', '0')}
+>>> node2.blockchain.printBlockChain()
+{0: (0, 234585, 'Transaction 5', '0000d65d3409017e8339d87f8d0e9ac3775323ee4271394fafc0edf62f7a0842', '0'), 1: (0, 234585, 'Transaction 5', '0000d65d3409017e8339d87f8d0e9ac3775323ee4271394fafc0edf62f7a0842', '0')}
+>>> node3.blockchain.printBlockChain()
+{0: (0, 234585, 'Transaction 5', '0000d65d3409017e8339d87f8d0e9ac3775323ee4271394fafc0edf62f7a0842', '0'), 1: (0, 234585, 'Transaction 5', '0000d65d3409017e8339d87f8d0e9ac3775323ee4271394fafc0edf62f7a0842', '0')}
