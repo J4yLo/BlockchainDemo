@@ -8,6 +8,7 @@ from PyQt6 import QtGui
 from PyQt6.QtWidgets import QApplication, QDialog, QGraphicsScene, QGraphicsView, QTableWidget, QTableWidgetItem, QVBoxLayout , QWidget , QLabel
 from PyQt6.QtCore import QTime, QTimer, Qt, QMimeData
 from UI import Ui_scr_Main
+from Properties import Ui_Properties
 from PyQt6.QtWidgets import QMainWindow
 from PyQt6.QtGui import QDrag, QPixmap, QPainter, QCursor, QAction
 import json
