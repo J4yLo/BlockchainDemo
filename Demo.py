@@ -1074,6 +1074,11 @@ class DragNodeIcon(QtWidgets.QLabel):
         self.removeAction = QAction("Remove Node", self)
         self.removeAction.triggered.connect(lambda: self.myAppInstance.removeNode(self))
         self.contextMenu.addAction(self.removeAction)
+
+        #Add Properties Option
+        self.propertiesAction = QAction("Properties", self)
+        self.propertiesAction.triggered.connect(lambda: self.myAppInstance.propertiesAction(self))
+        self.contextMenu.addAction(self.propertiesAction)
         
 
     
