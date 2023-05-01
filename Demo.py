@@ -17,6 +17,8 @@ from datetime import datetime
 
 global bftMessages
 bftMessages = []
+
+
 #------------------------------------------------------------------------
 #Class for adding network nodes
 #------------------------------------------------------------------------
@@ -107,10 +109,12 @@ class Node:
             msg = Message(MessageType.PrePrepare, self.ID, prePrepare)
             self.msgLog[self.msgNumber + 1] = [msg]
             self.broadcast(msg)
+            return True
 
         else: 
             #decrease trust
             print("There are no Prime Nodes")
+            return False
 
     #Store the Primary Node
     def primeNode(self):
@@ -207,6 +211,7 @@ class Node:
             'block': tempBlock,
             'sequence': msg.data['sequence'],
             'sender' : self.ID,
+            'origin': msg.data['sender'],
             'data' : msg.data['data']
 
         }
@@ -252,7 +257,8 @@ class Node:
                 'request' : msg,
                 'sender' : self.ID,
                 'Data' : msg['data'],
-                'block': msg['block']
+                'block': msg['block'],
+                'origin': msg['origin'],
             }
         prepareMsgOBJ = Message(MessageType.Commit, self.ID, prepareMsg)
         self.broadcast(prepareMsgOBJ)
@@ -277,6 +283,7 @@ class Node:
                     'sequence': msgValue,
                     'request' : msg,
                     'sender' : self.ID,
+                    'origin': msg['origin']
                 }
                 
             commitMsgOBJ = Message(MessageType.Commit, commitMsg, self.ID)
@@ -295,14 +302,17 @@ class Node:
                 self.msgNumber += 1
                 msgValue = self.msgNumber
 
+                #Commit Block
+                self.commitBlock(msg)
 
-                
+                #Award Trust
+                self.awardTrust(trust=1)
 
-                #Broadcast Block
-                if msg.data['block'] not in self.blockchain.chain:
-                    if not self.blockchain.hasBlock(msg.data['block']):
-                        self.blockchain.chain.append(msg.data['block'])
-                        #print(self.blockchain.chain)
+                for node in self.nodes:
+                    if node.ID == msg.data['origin']:
+                        node.awardTrust(trust=1)
+                        break
+
 
                 #reset commits and prepares
                 self.prepare = []
@@ -378,6 +388,30 @@ class Node:
     
     def handleReply(self,msg):
         print(f"Node {self.ID} recieved reply: {msg.data['Data']}")
+
+    #To Commit Block
+    def commitBlock(self, msg):
+        #Broadcast Block
+        if msg.data['block'] not in self.blockchain.chain:
+            if not self.blockchain.hasBlock(msg.data['block']):
+                self.blockchain.chain.append(msg.data['block'])
+                #print(self.blockchain.chain)
+                return True
+        else:
+            return False
+    
+    def awardTrust(self, trust):
+        if self.trust < 100:
+            self.trust += trust
+        else:
+            self.trust = 100
+
+
+        
+    
+            
+
+
 
 #------------------------------------------------------------------------
 #Class For communication Template required for Byzantine Fault Tolerance
@@ -737,6 +771,8 @@ class MyApp(QMainWindow, Ui_scr_Main):
             
         #Properties Window
         self.propertiesWindow = None
+
+        
         
         
         
@@ -763,6 +799,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
         self.btn_AddNode.setObjectName("btn_AddNode")
 
+    
     #ADD NODE
         self.btn_AddNode.clicked.connect(self.addNewNode)
 
@@ -770,11 +807,23 @@ class MyApp(QMainWindow, Ui_scr_Main):
         self.btn_AddBlockToNode.clicked.connect(self.addBlockToNode)
     #Mine Block
         self.btn_Mine.clicked.connect(self.mineBlocks)
+    #For appllying settings
+        self.btn_applySettings.clicked.connect(self.applySettings)
 
 
     #----------------------------------------
     #Ui Functions
     #----------------------------------------
+
+    #--------------APPLY SETTINGS-------------
+    def applySettings(self):
+        self.automaticAdditionOfData()
+
+            
+
+
+
+            
 
     #---------------STOPWATCH-----------------
     def initStopwatch(self):
@@ -792,6 +841,8 @@ class MyApp(QMainWindow, Ui_scr_Main):
     def addBlockToNode(self):
         ID = str(self.txt_NodeID.toPlainText().strip())
         Data = self.txt_blkData.toPlainText().strip()
+
+        
 
         if not Data:
             Data = "None"
@@ -1115,6 +1166,75 @@ class MyApp(QMainWindow, Ui_scr_Main):
         self.propertiesWindow.show()
         self.propertiesWindow.raise_()
         self.propertiesWindow.activateWindow()
+
+    #----------------------------------------
+    #Automated Network Functions
+    #----------------------------------------
+    def automaticAdditionOfData(self):
+        if self.chk_PauseMining.isChecked():
+            if self.b.nodes:
+                
+                #Data To Add To Overview
+                ntwTime = self.stopwatch.toString("hh:mm:ss")
+                Time = datetime.now().strftime("%H:%M:%S")
+
+                #Data 
+                data = ["Data-Entry-1", "Data-Entry-2", "Data-Entry-3", "Data-Entry-4", "Data-Entry-5", "Data-Entry-6", "Data-Entry-7", "Data-Entry-8", "Data-Entry-9", "Data-Entry-10"]
+
+                #Select Random Data
+                randomData = random.choice(data)
+
+                #Select Node to add data
+                randomNode = random.choice(self.b.nodes)
+
+                #Add Block 
+                
+
+                if randomNode.addBlock(randomData) and randomData not in self.b.chain:
+                    randomNode.addBlock(randomData)
+                    blockID = len(self.b.chain)
+                
+                    #Update UI
+                    self.updateBlockChainTable()
+                    self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block ID: {blockID}")
+                    self.updateTrustValuesInList()
+                else:
+                    self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block Failed To Add")
+                    
+                self.updateMessagesTable()
+            #Error Prompt
+            else:
+                prompt = QDialog()
+                prompt.setWindowTitle("No Nodes Available")
+                prompt.setModal(True)
+
+                #Message
+                lbl = QLabel("Trust Must An Integer")
+                lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+
+                #Layout
+                layout = QVBoxLayout()
+                layout.addWidget(lbl)
+                prompt.setLayout(layout)
+                prompt.exec()
+
+            self.timer = QTimer()
+            self.timer.timeout.connect(self.automaticAdditionOfData)
+            interval = 1000
+            self.timer.start(interval)
+        else:
+            if hasattr(self, "timer") and self.timer.isActive():
+                self.timer.stop()
+
+    def updateTrustValuesInList(self):
+        for i in range(self.listWidget.count()):
+            item = self.listWidget.item(i)
+            nodeID = int(item.text().split(',')[0].split(':')[1].strip())
+            trust = self.b.getNodeByID(nodeID).trust
+            nodeName = item.text().split(',')[1].strip()
+            updatedText = f"ID: {nodeID}, {nodeName}, trust: {trust}"
+            item.setText(updatedText)
+                
 
 
 class DragNodeIcon(QtWidgets.QLabel):
