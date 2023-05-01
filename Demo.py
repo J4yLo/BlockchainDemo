@@ -106,7 +106,7 @@ class Node:
 
             }
 
-            msg = Message(MessageType.PrePrepare, self.ID, prePrepare)
+            msg = Message(MessageType.PrePrepare, self.ID, prePrepare, self.ID )
             self.msgLog[self.msgNumber + 1] = [msg]
             self.broadcast(msg)
             return True
@@ -192,7 +192,7 @@ class Node:
 
             }
             self.prePrepare.append(prePrepare)
-            prePrepMsg = Message(MessageType.PrePrepare, self, prePrepare, self.ID)
+            prePrepMsg = Message(MessageType.PrePrepare, self, prePrepare, self.ID, msg['origin'])
             self.broadcast(prePrepMsg)
         else:
             print("Node is not primary and cannot handle requests")
@@ -260,7 +260,7 @@ class Node:
                 'block': msg['block'],
                 'origin': msg['origin'],
             }
-        prepareMsgOBJ = Message(MessageType.Commit, self.ID, prepareMsg)
+        prepareMsgOBJ = Message(MessageType.Commit, self.ID, prepareMsg, msg['origin'])
         self.broadcast(prepareMsgOBJ)
 
 
@@ -286,7 +286,7 @@ class Node:
                     'origin': msg['origin']
                 }
                 
-            commitMsgOBJ = Message(MessageType.Commit, commitMsg, self.ID)
+            commitMsgOBJ = Message(MessageType.Commit, commitMsg, self.ID, msg['origin'])
             self.broadcast(commitMsgOBJ)
         else:
             print("Message Unable to prepare")
@@ -327,7 +327,7 @@ class Node:
                     'sender' : self.ID,
                     
                 }
-                replyMsgOBJ = Message(MessageType.Reply, self.ID, reply)
+                replyMsgOBJ = Message(MessageType.Reply, self.ID, reply, self.ID)
                 self.send(msg.data['request']['sender'], replyMsgOBJ)
 
                 #self.blockchain.addBlock(tempBlock)
@@ -424,11 +424,12 @@ class MessageType(Enum):
     Reply = 5
 
 class Message:
-    def __init__(self, type, sender, data):
+    def __init__(self, type, sender, data, origin):
         self.type = type
         self.sender = sender
         self.data = data
         self.datetime = datetime.now()
+        self.origin = origin
         
 #-----------------------------------
 #-----------------------------------
@@ -970,8 +971,8 @@ class MyApp(QMainWindow, Ui_scr_Main):
         if bftMessages is not None:
             self.tbl_Messages.clear()
             self.tbl_Messages.setRowCount(len(bftMessages))
-            self.tbl_Messages.setColumnCount(4)
-            headers = ["Time", "Network Time","Type", "Sender ID", "Data"]
+            self.tbl_Messages.setColumnCount(6)
+            headers = ["Time", "Network Time","Type", "Sender ID", "Origin","Data"]
             self.tbl_Messages.setHorizontalHeaderLabels(headers)
 
             for row, msg in enumerate(bftMessages):
@@ -979,7 +980,8 @@ class MyApp(QMainWindow, Ui_scr_Main):
                 self.tbl_Messages.setItem(row, 1, QTableWidgetItem(str(self.stopwatch.toString("hh:mm:ss"))))
                 self.tbl_Messages.setItem(row, 2, QTableWidgetItem(str(msg.type)))
                 self.tbl_Messages.setItem(row, 3, QTableWidgetItem(str(msg.sender)))
-                self.tbl_Messages.setItem(row, 4, QTableWidgetItem(str(msg.data)))
+                self.tbl_Messages.setItem(row, 4, QTableWidgetItem(str(msg.origin)))
+                self.tbl_Messages.setItem(row, 5, QTableWidgetItem(str(msg.data)))
 
 
             self.tbl_Messages.resizeColumnsToContents()
