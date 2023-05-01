@@ -5,27 +5,30 @@ import sys
 from PyQt6 import QtWidgets, sip
 from PyQt6 import QtCore
 from PyQt6 import QtGui
-from PyQt6.QtWidgets import QApplication, QDialog, QGraphicsScene, QGraphicsView, QTableWidget, QVBoxLayout , QWidget , QLabel
-from PyQt6.QtCore import Qt, QMimeData
+from PyQt6.QtWidgets import QApplication, QDialog, QGraphicsScene, QGraphicsView, QTableWidget, QTableWidgetItem, QVBoxLayout , QWidget , QLabel
+from PyQt6.QtCore import QTime, QTimer, Qt, QMimeData
 from UI import Ui_scr_Main
 from PyQt6.QtWidgets import QMainWindow
 from PyQt6.QtGui import QDrag, QPixmap, QPainter, QCursor, QAction
 import json
 import copy
+from datetime import datetime
 
-
+global bftMessages
+bftMessages = []
 #------------------------------------------------------------------------
 #Class for adding network nodes
 #------------------------------------------------------------------------
 #Class For Adding Nodes To The Network
 #------------------------------------------------------------------------
 class Node:
-    def __init__(self, nodeID, prime, nodes, trust=0, blockchain=None, name="None"):
+    def __init__(self, nodeID, prime, nodes, trust=0, blockchain=None, name="None", ui=None):
 
 
 
         #Initialising the Node
         self.prime = prime
+        self.ui = ui
 
         #For Sending and recieving 
         self.msgNumber = 0
@@ -112,41 +115,52 @@ class Node:
 
 
     #Send a Message
+    #check to see if node still exists
+    def nodePresent(self, target):
+        return 0 <= target < len(self.nodes)
+    
     def send(self, target, message):
-        print(f"Node {self.ID} sending msg to node {target} : {message.data}")
-        self.nodes[target].recieve(message)
+        if self.nodePresent(target):
+            print(f"Node {self.ID} sending msg to node {target} : {message.data}")
+            self.nodes[target].recieve(message)
+
+            global bftMessages
+            bftMessages.append(message)
 
     #Function to broadcast messages to the network
     def broadcast(self, msg, updateTable=None):
-        primeNodes = self.blockchain.getPrimeNodes()
         
-        for node in primeNodes:
+        
+        for node in self.nodes:
             if node != self:
-                print(f"Node {self.ID} sending msg to node {node.ID} : {msg.data}")
+                #print(f"Node {self.ID} sending msg to node {node.ID} : {msg.data}")
                 node.recieve(msg)
-                if updateTable is not None:
-                    updateTable([msg])
+                global bftMessages
+                bftMessages.append(msg)
 
     #Recieve a Message
     def recieve(self, msg):
 
+        
+        primeNodes = self.blockchain.getPrimeNodes()
+        if self in primeNodes:
+            if msg.type == MessageType.Request:
+                self.handleRequest(msg)
+            elif msg.type == MessageType.PrePrepare:
+                self.handlePrePrepare(msg)
+            elif msg.type == MessageType.Prepare:
+                self.handlePrepare(msg)
+            elif msg.type == MessageType.Commit:
+                self.handleCommit(msg)
+            elif msg.type == MessageType.Reply:
+                self.handleReply(msg)
+            else:
+                print (f"Compremised Request")
+                #Decrease Trust
+        
+
         print(f"Node {self.ID} recieved msg: {msg.sender}")
-
-
-        if msg.type == MessageType.Request:
-            self.handleRequest(msg)
-        elif msg.type == MessageType.PrePrepare:
-            self.handlePrePrepare(msg)
-        elif msg.type == MessageType.Prepare:
-            self.handlePrepare(msg)
-        elif msg.type == MessageType.Commit:
-            self.handleCommit(msg)
-        elif msg.type == MessageType.Reply:
-            self.handleReply(msg)
-        else:
-            print (f"Compremised Request")
-
-            #Decrease Trust
+            
 
 
     #Function to handle a request
@@ -243,7 +257,7 @@ class Node:
 
 
     def handlePrepare(self, msg):
-        if self.validPrepare(msg) and msg not in self.prepare:
+        if self.validPrepare(msg) :#and msg not in self.prepare:
             self.prepare.append(msg)
 
             print(f"Node {self.ID} node Handling Prepare")
@@ -285,6 +299,7 @@ class Node:
                 if msg.data['block'] not in self.blockchain.chain:
                     if not self.blockchain.hasBlock(msg.data['block']):
                         self.blockchain.chain.append(msg.data['block'])
+                        #print(self.blockchain.chain)
 
                 #reset commits and prepares
                 self.prepare = []
@@ -376,6 +391,7 @@ class Message:
         self.type = type
         self.sender = sender
         self.data = data
+        self.datetime = datetime.now()
         
 #-----------------------------------
 #-----------------------------------
@@ -427,7 +443,7 @@ class Blockchain:
                 return node
         return None
     
-    #Get Prime Node
+    #Get Prime Nodes
     def getPrimeNodes(self):
         #sort the nodes in decending order based upon their trust
         sortedNodes = sorted(self.nodes, key=lambda node: node.trust, reverse=True)
@@ -659,6 +675,7 @@ class Blockchain:
 class MyApp(QMainWindow, Ui_scr_Main):
     b = None
     selected_icon = None
+
     
     def __init__(self):
         super(MyApp, self).__init__()
@@ -666,6 +683,13 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
         #Mapping to tie UI lists with Interactive elements
         self.nodeIconMappings = {}
+
+        #Timer
+        self.timer = QTimer()
+        self.stopwatch = QTime(0,0)
+        self.initStopwatch()
+        
+            
 
         
         
@@ -679,8 +703,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
         self.tbl_Blockchain.setModel(self.blockchainModel)
 
         #List For Messages sent during byzentine fault tollerence
-        self.messagesModel = QtGui.QStandardItemModel()
-        self.tbl_Messages = (self.messagesModel)
+        self.tbl_Messages.findChild(QtWidgets.QTableWidget, "tbl_Messages")
 
 
         #Drag and Drop peramiters for area
@@ -701,6 +724,18 @@ class MyApp(QMainWindow, Ui_scr_Main):
         self.btn_AddBlockToNode.clicked.connect(self.addBlockToNode)
     #Mine Block
         self.btn_Mine.clicked.connect(self.mineBlocks)
+
+
+    #----------------------------------------
+    #Ui Functions
+    #----------------------------------------
+    def initStopwatch(self):
+        self.timer.timeout.connect(self.updateStopwatch)
+        self.timer.start(1000)
+
+    def updateStopwatch(self):
+        self.stopwatch = self.stopwatch.addSecs(1)
+        self.label_15.setText(self.stopwatch.toString("hh:mm:ss"))
 
     #----------------------------------------
     #Block Functions
@@ -744,6 +779,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
                 node.addBlock(Data)
                 self.lst_Overview.addItem(f"ID: {ID}, Block added to Node: {node.name}, with data of {Data}")
                 self.updateBlockChainTable()
+                self.updateMessagesTable()
 
             #Error if node dosnt exist
             else:
@@ -826,22 +862,24 @@ class MyApp(QMainWindow, Ui_scr_Main):
     #----------------------------------------
     #Messages Functions
     #----------------------------------------
-    def updateMessagesTable(self, message):
-        if self.b is not None:
-            self.messagesModel.clear()
-            self.messagesModel.setRowCount(len(message))
-            self.messagesModel.setColumnCount(5)
-            headers = ["Time","Type", "Sender ID", "Data", "Content"]
-            self.messagesModel.setHorizontalHeaderLabels(headers)
+    def updateMessagesTable(self):
+        global bftMessages
+        if bftMessages is not None:
+            self.tbl_Messages.clear()
+            self.tbl_Messages.setRowCount(len(bftMessages))
+            self.tbl_Messages.setColumnCount(4)
+            headers = ["Time","Type", "Sender ID", "Data"]
+            self.tbl_Messages.setHorizontalHeaderLabels(headers)
 
-            for row, msg in enumerate(message):
-                self.messagesModel.setItem(row, 0, QtGui.QStandardItem(str("13:8:9")))
-                self.messagesModel.setItem(row, 1, QtGui.QStandardItem(str(msg.Type)))
-                self.messagesModel.setItem(row, 2, QtGui.QStandardItem(str(msg.sender.ID)))
-                self.messagesModel.setItem(row, 3, QtGui.QStandardItem(str(msg.data)))
-                self.messagesModel.setItem(row, 4, QtGui.QStandardItem(str(msg.content)))
-                
+            for row, msg in enumerate(bftMessages):
+                self.tbl_Messages.setItem(row, 0, QTableWidgetItem(str(msg.datetime.strftime("%H:%M:%S"))))
+                self.tbl_Messages.setItem(row, 1, QTableWidgetItem(str(msg.type)))
+                self.tbl_Messages.setItem(row, 2, QTableWidgetItem(str(msg.sender)))
+                self.tbl_Messages.setItem(row, 3, QTableWidgetItem(str(msg.data)))
+
+
             self.tbl_Messages.resizeColumnsToContents()
+            
 
             
     #----------------------------------------
@@ -860,6 +898,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
     def addNewNodeHelper(self, node, Trust):  
             addedNode = self.b.addNode(trust=Trust, name=node)
             self.lst_Overview.addItem(f"ID:{addedNode.ID}: Name: {node} added to the network, trust value: {Trust}")
+            self.lst_Overview.addItem(f"ID:{addedNode.ID}: Name: {node} Synced To The Network")
             self.listWidget.addItem(f"ID: {str(addedNode.ID)}, Node: {node}, trust: {Trust}")
             
 
@@ -1022,14 +1061,14 @@ class DragNodeIcon(QtWidgets.QLabel):
         super(DragNodeIcon, self).__init__(parent)
         self.contextMenu = QtWidgets.QMenu()
         self.b = blockchain
+        self.node = None
 
         #Add Option To Remove
         self.removeAction = QAction("Remove Node", self)
         self.removeAction.triggered.connect(lambda: self.myAppInstance.removeNode(self))
         self.contextMenu.addAction(self.removeAction)
         
-        
-            
+
     
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
