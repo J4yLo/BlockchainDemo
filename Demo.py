@@ -6,11 +6,11 @@ from PyQt6 import QtWidgets, sip
 from PyQt6 import QtCore
 from PyQt6 import QtGui
 from PyQt6.QtWidgets import QApplication, QDialog, QGraphicsScene, QGraphicsView, QTableWidget, QTableWidgetItem, QVBoxLayout , QWidget , QLabel
-from PyQt6.QtCore import QTime, QTimer, Qt, QMimeData, pyqtSignal, QThread
+from PyQt6.QtCore import QPoint, QTime, QTimer, Qt, QMimeData, pyqtSignal, QThread
 from UI import Ui_scr_Main
 from Properites import Ui_Properties
 from PyQt6.QtWidgets import QMainWindow
-from PyQt6.QtGui import QDrag, QPixmap, QPainter, QCursor, QAction
+from PyQt6.QtGui import QColor, QDrag, QPixmap, QPainter, QCursor, QAction, QPen
 import json
 import copy
 from datetime import datetime
@@ -228,11 +228,7 @@ class Node:
             print((f"Node {self.ID} node returned invalid PrePrepare"))
 
     def validPrePrepare(self, msg):
-
-        #if self.Attacker:
-        #    return True
         
-            
         content = msg.data
         if msg.type != MessageType.PrePrepare:
             return False
@@ -275,8 +271,9 @@ class Node:
 
 
     def handlePrepare(self, msg):
-        if self.validPrepare(msg) :#and msg not in self.prepare:
+        if self.validPrepare(msg) or self.Attacker:#and msg not in self.prepare:
             self.prepare.append(msg)
+
 
             print(f"Node {self.ID} node Handling Prepare")
 
@@ -302,7 +299,7 @@ class Node:
 
     #COMMIT MSG
     def handleCommit(self, msg):
-        if self.validCommit(msg) and msg not in self.commit:
+        if self.validCommit(msg) and msg not in self.commit or self.Attacker:
             self.commit.append(msg)
             if len(self.prepare) >= self.getSize(self.blockchain.getPrimeNodes()):
                 print(f"Node {self.ID} node Handling Commit")
@@ -415,6 +412,16 @@ class Node:
             self.trust += trust
         else:
             self.trust = 100
+
+    #Attacker Functions
+    def dataChangeAttack(self, targetblockID, data):
+        if self.Attacker:
+            self.blockchain.changeData(targetblockID, data)
+            print(f"Node {self.ID} (attacker) altering data in block {targetblockID}")
+
+        else:
+            print(f"Node isnt of attacker type")
+
 
 
         
@@ -861,6 +868,33 @@ class Worker(QThread):
         self.finished.emit()
 
 #----------------------------------------
+#Class To Join Nodes On UI
+#----------------------------------------
+class LineDrawer(QWidget):
+    def __init__(self, parent=None):
+        super(LineDrawer, self).__init__(parent)
+        self.nodePositions = [QPoint(0,0)]
+
+    def addNodePositions(self, position):
+        self.nodePositions.append(position)
+        self.update()
+
+    def updateNodePositions(self, index, position):
+        print(f"Node added at index Updating node position at {index}, new position: {position}")
+        self.nodePositions[index] = position
+        self.update()
+    
+    def paintEvent(self, event):
+        painter = QPainter(self)       
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        pen = QPen(QColor(Qt.GlobalColor.black), 2)
+        painter.setPen(pen)
+
+        for i in range(len(self.nodePositions)):
+            for j in range(i + 1, len(self.nodePositions)):
+                painter.drawLine(self.nodePositions[i], self.nodePositions[j])
+        
+#----------------------------------------
 #Main Window
 #----------------------------------------  
 
@@ -891,7 +925,9 @@ class MyApp(QMainWindow, Ui_scr_Main):
         self.validDataWorkerTimer = QTimer()
         self.validDataWorkerTimer.timeout.connect(self.automaticAdditionOfData)
         
-        
+        #Draw Lines Between Nodes
+        self.lineDrawer = LineDrawer(parent=self.fr_VisualArea)
+        self.lineDrawer.resize(self.fr_VisualArea.size())
         
 
         #List for network overview
@@ -926,6 +962,8 @@ class MyApp(QMainWindow, Ui_scr_Main):
         self.btn_Mine.clicked.connect(self.mineBlocks)
     #For appllying settings
         self.btn_applySettings.clicked.connect(self.applySettings)
+    #Changing Block Data
+        self.btn_ChangeBlock.clicked.connect(self.changeBlock)
 
 
     #----------------------------------------
@@ -963,6 +1001,62 @@ class MyApp(QMainWindow, Ui_scr_Main):
     #----------------------------------------
     #Block Functions
     #----------------------------------------
+    def changeBlock(self):
+        ID = str(self.txt_BlockID.toPlainText().strip())
+        Data = str(self.txt_changeBlockData.toPlainText().strip())
+
+        #Checks
+        if not Data:
+            Data = "None"
+        Valid = False
+
+        #Check for correct input 
+        try:
+            ID = int(ID)
+            Valid = True
+
+        #Prompt Error
+        except ValueError:
+            Valid = False
+            prompt = QDialog()
+            prompt.setWindowTitle("Unable To Change Block")
+            prompt.setModal(True)
+
+            #Message
+            lbl = QLabel("ID Must An Integer and must exist on the Blockchain")
+            lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+
+            #Layout
+            layout = QVBoxLayout()
+            layout.addWidget(lbl)
+            prompt.setLayout(layout)
+            prompt.exec()
+
+        if self.b is not None and Valid and any(block.id == ID for block in self.b.chain):
+            self.b.changeData(ID, Data)
+
+            #Update Ui
+            self.updateBlockChainTable()
+            self.updateMessagesTable()
+            self.updateTrustValuesInList()   
+            self.updateMessagesTable()
+            self.updateAllNodeIcons()
+        else:
+            Valid = False
+            prompt = QDialog()
+            prompt.setWindowTitle("Block Dosnt Exist")
+            prompt.setModal(True)
+
+            #Message
+            lbl = QLabel("ID Must An Integer and must exist on the Blockchain")
+            lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+
+            #Layout
+            layout = QVBoxLayout()
+            layout.addWidget(lbl)
+            prompt.setLayout(layout)
+            prompt.exec()
+
         
     def addBlockToNode(self):
         ID = str(self.txt_NodeID.toPlainText().strip())
@@ -1011,6 +1105,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
                 self.updateMessagesTable()
                 self.updateTrustValuesInList()   
                 self.updateMessagesTable()
+                self.updateAllNodeIcons()
 
             #Error if node dosnt exist
             else:
@@ -1144,6 +1239,8 @@ class MyApp(QMainWindow, Ui_scr_Main):
             newNode.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Valid.png"))
 
             newNode.ID = addedNode.ID
+            
+            self.nodeIconMappings[newNode] = self.listWidget.item(self.listWidget.count() - 1)
 
             #Associate with the UI
             list_item = self.lst_Overview.item(self.lst_Overview.count() - 1)
@@ -1159,6 +1256,9 @@ class MyApp(QMainWindow, Ui_scr_Main):
             #For Drag And Drop
             newNode.myAppInstance = self
             newNode.show()
+            
+            self.lineDrawer.addNodePositions(newNode.pos())
+            print(f"Node added at index: {self.listWidget.count() - 1}, position: {newNode.pos()}")
 
             
 
@@ -1337,31 +1437,37 @@ class MyApp(QMainWindow, Ui_scr_Main):
                     ntwTime = self.stopwatch.toString("hh:mm:ss")
                     Time = datetime.now().strftime("%H:%M:%S")
 
-                    #Data 
-                    data = ["Data-Entry-1", "Data-Entry-2", "Data-Entry-3", "Data-Entry-4", "Data-Entry-5", "Data-Entry-6", "Data-Entry-7", "Data-Entry-8", "Data-Entry-9", "Data-Entry-10"]
 
-                    #Select Random Data
-                    randomData = random.choice(data)
 
                     #Select Node to add data
                     randomNode = random.choice(self.b.nodes)
 
-                    #Add Block 
-                
-
-                    if randomNode.addBlock(randomData) and randomData not in self.b.chain:
-                        randomNode.addBlock(randomData)
-                        blockID = len(self.b.chain)
-                
-                        #Update UI
-                        self.updateBlockChainTable()
-                        self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block ID: {blockID}")
-                        self.updateTrustValuesInList()
-                        self.updateAllNodeIcons()
+                    if randomNode.Attacker:
+                        data = ["Mallicious-Data-1", "Mallicious-Data-2", "Mallicious-Data-3", "Mallicious-Data-4", "Mallicious-Data-5", "Mallicious-Data-6", "Mallicious-Data-7", "Mallicious-Data-8", "Mallicious-Data-9", "Mallicious-Data-10"]
+                        randomData = random.choice(data)
+                        randomNode.dataChangeAttack(data)
                     else:
-                        self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block Failed To Add")
+
+                        #Data 
+                        data = ["Data-Entry-1", "Data-Entry-2", "Data-Entry-3", "Data-Entry-4", "Data-Entry-5", "Data-Entry-6", "Data-Entry-7", "Data-Entry-8", "Data-Entry-9", "Data-Entry-10"]
+
+                        #Select Random Data
+                        randomData = random.choice(data)
+
+                        #Add Block 
+                        if randomNode.addBlock(randomData) and randomData not in self.b.chain:
+                            randomNode.addBlock(randomData)
+                            blockID = len(self.b.chain)
+                
+                            #Update UI
+                            self.updateBlockChainTable()
+                            self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block ID: {blockID}")
+                            self.updateTrustValuesInList()
+                            self.updateAllNodeIcons()
+                        else:
+                            self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block Failed To Add")
                     
-                    self.updateMessagesTable()
+                        self.updateMessagesTable()
             #Error Prompt
             except:
                 prompt = QDialog()
@@ -1394,7 +1500,9 @@ class MyApp(QMainWindow, Ui_scr_Main):
             updatedText = f"ID: {nodeID}, {nodeName}, trust: {trust}"
             item.setText(updatedText)
     
-
+    def updateNodePositions(self, index,  position):
+        self.lineDrawer.updateNodePositions(index, position)
+        self.lineDrawer.update()
 
                 
 
@@ -1410,6 +1518,10 @@ class DragNodeIcon(QtWidgets.QLabel):
         self.removeAction = QAction("Remove Node", self)
         self.removeAction.triggered.connect(lambda: self.myAppInstance.removeNode(self))
         self.contextMenu.addAction(self.removeAction)
+
+
+        #self.moveEvent.connect(self.myAppInstance.updateNodePositions)
+
 
         #Add Properties Option
         self.propertiesAction = QAction("Properties", self)
@@ -1427,7 +1539,13 @@ class DragNodeIcon(QtWidgets.QLabel):
             self.window().updateSelectedIcon(self)
             self.contextMenu.exec(QCursor.pos())
             
-
+    def moveEvent(self, event: QtGui.QMoveEvent) -> None:
+            super().moveEvent(event)
+            if hasattr(self, 'myAppInstance'):
+                index = self.myAppInstance.nodeIconMappings[self]
+                index = self.myAppInstance.listWidget.row(index)
+                self.myAppInstance.updateNodePositions(index, self.pos())
+                print(f"Node noved, index: {index}, position: {self.pos()}")
 
             
     def mouseMoveEvent(self, event):
