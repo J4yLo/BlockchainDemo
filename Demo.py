@@ -6,7 +6,7 @@ from PyQt6 import QtWidgets, sip
 from PyQt6 import QtCore
 from PyQt6 import QtGui
 from PyQt6.QtWidgets import QApplication, QDialog, QGraphicsScene, QGraphicsView, QTableWidget, QTableWidgetItem, QVBoxLayout , QWidget , QLabel
-from PyQt6.QtCore import QTime, QTimer, Qt, QMimeData
+from PyQt6.QtCore import QTime, QTimer, Qt, QMimeData, pyqtSignal, QThread
 from UI import Ui_scr_Main
 from Properites import Ui_Properties
 from PyQt6.QtWidgets import QMainWindow
@@ -14,6 +14,8 @@ from PyQt6.QtGui import QDrag, QPixmap, QPainter, QCursor, QAction
 import json
 import copy
 from datetime import datetime
+
+
 
 global bftMessages
 bftMessages = []
@@ -303,15 +305,16 @@ class Node:
                 msgValue = self.msgNumber
 
                 #Commit Block
-                self.commitBlock(msg)
+                commit = self.commitBlock(msg)
+                
+                if commit:
+                    #Award Trust
+                    self.awardTrust(trust=1)
 
-                #Award Trust
-                self.awardTrust(trust=1)
-
-                for node in self.nodes:
-                    if node.ID == msg.data['origin']:
-                        node.awardTrust(trust=1)
-                        break
+                    for node in self.nodes:
+                        if node.ID == msg.data['origin']:
+                            node.awardTrust(trust=1)
+                            break
 
 
                 #reset commits and prepares
@@ -723,7 +726,16 @@ class PropertiesDialog(QMainWindow, Ui_Properties):
         self.NodeID = NodeID
         self.my_app_instance = my_app_instance
 
+        self.tbl_prop_Blockchain.findChild(QtWidgets.QTableWidget, "tbl_prop_Blockchain")
+        self.tbl_prop_msgs.findChild(QtWidgets.QTableWidget, "tbl_prop_msgs")
+
+
+        #Set Variables
+        self.updateTimer = QTimer()
+
         self.setVariables()
+        self.update()
+
 
         
     
@@ -747,9 +759,95 @@ class PropertiesDialog(QMainWindow, Ui_Properties):
                 self.lbl_prop_Trust.setText(trust)
                 self.lbl_prop_time.setText(timeadded)
                 self.lbl_prop_networkTime.setText(addedNtwTime)
+
+                if selectedNode not in self.my_app_instance.b.getPrimeNodes():
+                    self.lbl_prop_Type.setText("Not Primary")
+                else:
+                    self.lbl_prop_Type.setText("Primary")
+
+    def updatePrimaryTag(self, selectedNode):
+        if selectedNode not in self.my_app_instance.b.getPrimeNodes():
+            self.lbl_prop_Type.setText("Not Primary")
+            self.label.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Valid.png"))
+            
+        else:
+            self.lbl_prop_Type.setText("Primary")
+            self.label.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Primary.png"))
+            
+
+    def UpdateBlockchain(self, selectedNode):
+      if selectedNode.blockchain.chain is not None:
+            self.tbl_prop_Blockchain.clear()
+            self.tbl_prop_Blockchain.setRowCount(len(selectedNode.blockchain.chain))
+            self.tbl_prop_Blockchain.setColumnCount(5)
+            headers = ["Block ID", "Data", "Nonce", "Hash", "Previous Hash"]
+            self.tbl_prop_Blockchain.setHorizontalHeaderLabels(headers)
+
+            for row, block in enumerate(selectedNode.blockchain.chain):
+                self.tbl_prop_Blockchain.setItem(row, 0, QTableWidgetItem(str(block.id)))
+                self.tbl_prop_Blockchain.setItem(row, 1, QTableWidgetItem(str(block.data)))
+                self.tbl_prop_Blockchain.setItem(row, 2, QTableWidgetItem(str(block.nonce)))
+                self.tbl_prop_Blockchain.setItem(row, 3, QTableWidgetItem(str(block.hashcode)))
+                self.tbl_prop_Blockchain.setItem(row, 4, QTableWidgetItem(str(block.previousHash)))
+            self.tbl_prop_Blockchain.resizeColumnsToContents()
+
+    def UpdateMessages(self, selectedNode):
+        if selectedNode.blockchain.chain is not None:
+            global bftMessages
+            nodeMsg = []
+            for row, msg in enumerate(bftMessages):
+                if msg.sender == selectedNode.ID and msg not in nodeMsg:
+                    nodeMsg.append(msg)
+                
+            if bftMessages is not None:
+                self.tbl_prop_msgs.clear()
+                self.tbl_prop_msgs.setRowCount(len(nodeMsg))
+                self.tbl_prop_msgs.setColumnCount(5)
+                headers = ["Time","Type", "Sender ID", "Origin","Data"]
+                self.tbl_prop_msgs.setHorizontalHeaderLabels(headers)
+
+            for row, msg in enumerate(nodeMsg):
+                if msg.sender == selectedNode.ID:
+                    self.tbl_prop_msgs.setItem(row, 0, QTableWidgetItem(str(msg.datetime.strftime("%H:%M:%S"))))
+                    self.tbl_prop_msgs.setItem(row, 1, QTableWidgetItem(str(msg.type)))
+                    self.tbl_prop_msgs.setItem(row, 2, QTableWidgetItem(str(msg.sender)))
+                    self.tbl_prop_msgs.setItem(row, 3, QTableWidgetItem(str(msg.origin)))
+                    self.tbl_prop_msgs.setItem(row, 4, QTableWidgetItem(str(msg.data)))
+                    self.tbl_prop_msgs.resizeColumnsToContents()
+
+    def update(self):
+        self.updateTimer.timeout.connect(self.updateVariables)
+        self.updateTimer.start(1000)
+
+    def updateVariables(self):
+        selectedNode = self.my_app_instance.b.getNodeByID(self.NodeID)
+        if self.isVisible():
+            self.updatePrimaryTag(selectedNode)
+            self.UpdateBlockchain(selectedNode)
+            self.UpdateMessages(selectedNode)
+        else:
+            self.updateTimer.stop()
         
     
 
+
+#----------------------------------------
+#Thread Class for automated processes
+#---------------------------------------- 
+class Worker(QThread):
+    finished = pyqtSignal()
+    
+    def __init__(self, func):
+        super().__init__()
+        self.func = func
+    
+    def run(self):
+        self.func()
+        self.finished.emit()
+
+#----------------------------------------
+#Main Window
+#----------------------------------------  
 
 class MyApp(QMainWindow, Ui_scr_Main):
     b = None
@@ -773,7 +871,9 @@ class MyApp(QMainWindow, Ui_scr_Main):
         #Properties Window
         self.propertiesWindow = None
 
-        
+        #Thread for automated mining process
+        self.validDataWorkerTimer = QTimer()
+        self.validDataWorkerTimer.timeout.connect(self.automaticAdditionOfData)
         
         
         
@@ -818,7 +918,16 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
     #--------------APPLY SETTINGS-------------
     def applySettings(self):
-        self.automaticAdditionOfData()
+        if self.chk_PauseMining.isChecked():
+            interval = 1000
+            self.validDataWorkerTimer.start(interval)
+        else:
+            if self.validDataWorkerTimer.isActive():
+                self.validDataWorkerTimer.stop()
+
+            
+            
+
 
             
 
@@ -884,6 +993,8 @@ class MyApp(QMainWindow, Ui_scr_Main):
                 self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime} ID: {ID}, Block added to Node: {node.name}, with data of {Data}")
                 self.updateBlockChainTable()
                 self.updateMessagesTable()
+                self.updateTrustValuesInList()   
+                self.updateMessagesTable()
 
             #Error if node dosnt exist
             else:
@@ -919,6 +1030,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
             layout.addWidget(lbl)
             prompt.setLayout(layout)
             prompt.exec()
+            
 
     #MINE CHAIN
     def mineBlocks(self):
@@ -1046,6 +1158,9 @@ class MyApp(QMainWindow, Ui_scr_Main):
                 row = self.listWidget.row(list_item)
                 self.listWidget.takeItem(row)
             nodeIcon.deleteLater()
+
+            self.updateTrustValuesInList()   
+            self.updateMessagesTable()
             
 
             
@@ -1174,59 +1289,60 @@ class MyApp(QMainWindow, Ui_scr_Main):
     #----------------------------------------
     def automaticAdditionOfData(self):
         if self.chk_PauseMining.isChecked():
-            if self.b.nodes:
+
+            try:
+                if self.b.nodes and len(self.b.nodes) > 0:
                 
-                #Data To Add To Overview
-                ntwTime = self.stopwatch.toString("hh:mm:ss")
-                Time = datetime.now().strftime("%H:%M:%S")
+                    #Data To Add To Overview
+                    ntwTime = self.stopwatch.toString("hh:mm:ss")
+                    Time = datetime.now().strftime("%H:%M:%S")
 
-                #Data 
-                data = ["Data-Entry-1", "Data-Entry-2", "Data-Entry-3", "Data-Entry-4", "Data-Entry-5", "Data-Entry-6", "Data-Entry-7", "Data-Entry-8", "Data-Entry-9", "Data-Entry-10"]
+                    #Data 
+                    data = ["Data-Entry-1", "Data-Entry-2", "Data-Entry-3", "Data-Entry-4", "Data-Entry-5", "Data-Entry-6", "Data-Entry-7", "Data-Entry-8", "Data-Entry-9", "Data-Entry-10"]
 
-                #Select Random Data
-                randomData = random.choice(data)
+                    #Select Random Data
+                    randomData = random.choice(data)
 
-                #Select Node to add data
-                randomNode = random.choice(self.b.nodes)
+                    #Select Node to add data
+                    randomNode = random.choice(self.b.nodes)
 
-                #Add Block 
+                    #Add Block 
                 
 
-                if randomNode.addBlock(randomData) and randomData not in self.b.chain:
-                    randomNode.addBlock(randomData)
-                    blockID = len(self.b.chain)
+                    if randomNode.addBlock(randomData) and randomData not in self.b.chain:
+                        randomNode.addBlock(randomData)
+                        blockID = len(self.b.chain)
                 
-                    #Update UI
-                    self.updateBlockChainTable()
-                    self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block ID: {blockID}")
-                    self.updateTrustValuesInList()
-                else:
-                    self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block Failed To Add")
+                        #Update UI
+                        self.updateBlockChainTable()
+                        self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block ID: {blockID}")
+                        self.updateTrustValuesInList()
+                    else:
+                        self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block Failed To Add")
                     
-                self.updateMessagesTable()
+                    self.updateMessagesTable()
             #Error Prompt
-            else:
+            except:
                 prompt = QDialog()
                 prompt.setWindowTitle("No Nodes Available")
                 prompt.setModal(True)
 
                 #Message
-                lbl = QLabel("Trust Must An Integer")
+                lbl = QLabel("Add a node to the network before beginning Mining")
                 lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+
+                #Uncheck Box
+                self.chk_PauseMining.setChecked(False)
 
                 #Layout
                 layout = QVBoxLayout()
                 layout.addWidget(lbl)
                 prompt.setLayout(layout)
                 prompt.exec()
+            
 
-            self.timer = QTimer()
-            self.timer.timeout.connect(self.automaticAdditionOfData)
-            interval = 1000
-            self.timer.start(interval)
-        else:
-            if hasattr(self, "timer") and self.timer.isActive():
-                self.timer.stop()
+
+
 
     def updateTrustValuesInList(self):
         for i in range(self.listWidget.count()):
@@ -1236,6 +1352,9 @@ class MyApp(QMainWindow, Ui_scr_Main):
             nodeName = item.text().split(',')[1].strip()
             updatedText = f"ID: {nodeID}, {nodeName}, trust: {trust}"
             item.setText(updatedText)
+    
+
+
                 
 
 

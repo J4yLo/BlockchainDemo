@@ -4,10 +4,10 @@ cd C:\Users\jason\Documents\UNI\3000\Demo\BlockchainDemo\Demo.py
 cd C:\Users\jason\Documents\UNI\3000\Demo\BlockchainDemo
 python Demo.py
 from Demo import *
-
+cd C:\Users\jason\Documents\UNI\3000\App\UI
 python -m PyQt6.uic.pyuic -o UI.py -x Home.ui
+python -m PyQt6.uic.pyuic -o Properites.py -x Properties.ui
 -----------------------------ADD--------------------------------
-
 
 b = Blockchain()
 node1 = b.addNode(trust=10)
