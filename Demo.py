@@ -27,7 +27,7 @@ bftMessages = []
 #Class For Adding Nodes To The Network
 #------------------------------------------------------------------------
 class Node:
-    def __init__(self, nodeID, prime, nodes, ntwTimeAdded, trust=0, blockchain=None, name="None", ui=None, timeAdded=None):
+    def __init__(self, nodeID, prime, nodes, ntwTimeAdded, Attacker ,trust=0, blockchain=None, name="None", ui=None, ):
 
 
 
@@ -47,6 +47,9 @@ class Node:
         self.name = name
         self.ntwTimeAdded = ntwTimeAdded
         self.timeAdded = datetime.now()
+        self.Attacker = Attacker
+
+
         
 
 
@@ -226,6 +229,10 @@ class Node:
 
     def validPrePrepare(self, msg):
 
+        #if self.Attacker:
+        #    return True
+        
+            
         content = msg.data
         if msg.type != MessageType.PrePrepare:
             return False
@@ -536,11 +543,11 @@ class Blockchain:
         #        return node
 
     #Syncronising Nodes with the established blockchain
-    def addNode(self, ntwTimeAdded, trust=0, name=None):
+    def addNode(self, ntwTimeAdded, Attacker, trust=0, name=None):
         
         nodeID = len(self.nodes)
         prime = False
-        node = Node(nodeID, prime, self.nodes, ntwTimeAdded, trust, blockchain=self, name=name)
+        node = Node(nodeID, prime, self.nodes, ntwTimeAdded, Attacker, trust, blockchain=self, name=name)
         
         self.nodes.append(node)
         print(f"Node: {node.ID} now added and synced to the network")
@@ -759,20 +766,28 @@ class PropertiesDialog(QMainWindow, Ui_Properties):
                 self.lbl_prop_Trust.setText(trust)
                 self.lbl_prop_time.setText(timeadded)
                 self.lbl_prop_networkTime.setText(addedNtwTime)
-
-                if selectedNode not in self.my_app_instance.b.getPrimeNodes():
-                    self.lbl_prop_Type.setText("Not Primary")
-                else:
-                    self.lbl_prop_Type.setText("Primary")
+                
+                self.updatePrimaryTag(selectedNode)
 
     def updatePrimaryTag(self, selectedNode):
-        if selectedNode not in self.my_app_instance.b.getPrimeNodes():
-            self.lbl_prop_Type.setText("Not Primary")
-            self.label.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Valid.png"))
-            
+        if selectedNode.Attacker:
+            if selectedNode not in self.my_app_instance.b.getPrimeNodes():
+                self.lbl_prop_Type.setText("Non Primary Mallicous Node")
+                self.label.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon__Attacker.png"))
+                
+            else:
+                self.lbl_prop_Type.setText("Primary Node (mallicious)")
+                self.label.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Primary_Attacker.png"))
         else:
-            self.lbl_prop_Type.setText("Primary")
-            self.label.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Primary.png"))
+            if selectedNode not in self.my_app_instance.b.getPrimeNodes():
+                self.lbl_prop_Type.setText("Non Primary Node")
+                self.label.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Valid.png"))
+            else:
+                self.lbl_prop_Type.setText("Primary Node")
+                self.label.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Primary.png"))
+                
+
+
             
 
     def UpdateBlockchain(self, selectedNode):
@@ -817,7 +832,7 @@ class PropertiesDialog(QMainWindow, Ui_Properties):
 
     def update(self):
         self.updateTimer.timeout.connect(self.updateVariables)
-        self.updateTimer.start(1000)
+        self.updateTimer.start(3000)
 
     def updateVariables(self):
         selectedNode = self.my_app_instance.b.getNodeByID(self.NodeID)
@@ -861,6 +876,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
         #Mapping to tie UI lists with Interactive elements
         self.nodeIconMappings = {}
+        self.listIconMappings = {}
 
         #Timer
         self.timer = QTimer()
@@ -1113,9 +1129,9 @@ class MyApp(QMainWindow, Ui_scr_Main):
         
 
     
-    def addNewNodeHelper(self, node, Trust):  
+    def addNewNodeHelper(self, node, Attacker, Trust):  
             ntwTime = self.stopwatch.toString("hh:mm:ss")
-            addedNode = self.b.addNode(ntwTimeAdded=ntwTime, trust=Trust, name=node)
+            addedNode = self.b.addNode(ntwTimeAdded=ntwTime, trust=Trust, name=node, Attacker=Attacker)
             Time = datetime.now().strftime("%H:%M:%S")
             ntwTime = self.stopwatch.toString("hh:mm:ss")
             self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time:  {ntwTime} - Name: {node} - ID: {addedNode.ID} - trust value: {Trust} - ACTION: added to the network")
@@ -1147,6 +1163,8 @@ class MyApp(QMainWindow, Ui_scr_Main):
             
 
             
+
+            
             
     def removeNode(self, nodeIcon):
         #Remove from Block Chain
@@ -1166,6 +1184,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
             
 
     def addNewNode(self):
+        attacker = self.chk_AttackerNode.isChecked()
         name = str(self.txt_NodeName.toPlainText().strip())
         Trust = self.txt_NodeTrust.toPlainText().strip()
         Valid = False
@@ -1194,7 +1213,8 @@ class MyApp(QMainWindow, Ui_scr_Main):
         
         if self.b is not None and Valid:
             node = name
-            self.addNewNodeHelper(node, Trust)
+            self.addNewNodeHelper(node, attacker, Trust)
+            self.updateAllNodeIcons()
 
 
             #Update List
@@ -1203,7 +1223,8 @@ class MyApp(QMainWindow, Ui_scr_Main):
         elif self.b is None and Valid:
             self.b = Blockchain()
             node = name
-            self.addNewNodeHelper(node, Trust)
+            self.addNewNodeHelper(node, attacker, Trust)
+            self.updateAllNodeIcons()
             
     
     
@@ -1237,15 +1258,32 @@ class MyApp(QMainWindow, Ui_scr_Main):
     
 
   
+    def updateAllNodeIcons(self):
+        for newNode, nodelist in self.nodeIconMappings.items():
+            node = self.b.getNodeByID(newNode.ID)
 
 
+            icon = "Assets/Images/Icons/Node_Icon_Valid.png"
+            print(f"Node: {node.ID}, undergoing change")
+            if node.Attacker:
+                if node in self.b.getPrimeNodes():
+                        icon = "Assets/Images/Icons/Node_Icon_Primary_Attacker.png"
+                else:
+                        icon = "Assets/Images/Icons/Node_Icon__Attacker.png"
+            else:
+                if node in self.b.getPrimeNodes():
+                        icon = "Assets/Images/Icons/Node_Icon_Primary.png"
+                
+            if newNode != self.selected_icon:
+                newNode.setPixmap(QtGui.QPixmap(icon))
+            
     #Update Selected Node
     def updateSelectedIcon(self, selected):
+        
         #Highlight Selected Node - UI
             if self.selected_icon is not None and self.selected_icon != selected and not sip.isdeleted(self.selected_icon):
-                
-                self.selected_icon.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Valid.png"))
-                self.nodeIconMappings[self.selected_icon].setSelected(False)
+                    self.selected_icon.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Valid.png"))
+                    self.nodeIconMappings[self.selected_icon].setSelected(False)
                 
 
             selected.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Selected.png"))
@@ -1263,6 +1301,8 @@ class MyApp(QMainWindow, Ui_scr_Main):
                 index = self.b.nodes.index(selectedNode)
                 item = self.listWidget.item(index)
                 item.setSelected(True)
+
+            self.updateAllNodeIcons()
 
     #ListView Functions
     def onListItemClick(self, item):
@@ -1317,6 +1357,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
                         self.updateBlockChainTable()
                         self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block ID: {blockID}")
                         self.updateTrustValuesInList()
+                        self.updateAllNodeIcons()
                     else:
                         self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block Failed To Add")
                     
