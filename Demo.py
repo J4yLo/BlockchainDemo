@@ -6,7 +6,7 @@ from PyQt6 import QtWidgets, sip
 from PyQt6 import QtCore
 from PyQt6 import QtGui
 from PyQt6.QtWidgets import QApplication, QDialog, QGraphicsScene, QGraphicsView, QTableWidget, QTableWidgetItem, QVBoxLayout , QWidget , QLabel
-from PyQt6.QtCore import QPoint, QTime, QTimer, Qt, QMimeData, pyqtSignal, QThread
+from PyQt6.QtCore import QCoreApplication, QPoint, QSize, QTime, QTimer, Qt, QMimeData, pyqtSignal, QThread
 from UI import Ui_scr_Main
 from Properites import Ui_Properties
 from PyQt6.QtWidgets import QMainWindow
@@ -873,27 +873,38 @@ class Worker(QThread):
 class LineDrawer(QWidget):
     def __init__(self, parent=None):
         super(LineDrawer, self).__init__(parent)
-        self.nodePositions = [QPoint(0,0)]
+        self.nodePositions = []
+        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        if parent:
+            self.setGeometry(parent.geometry())
 
     def addNodePositions(self, position):
-        self.nodePositions.append(position)
+        correctedPos = position + QPoint(int(DragNodeIcon.iconSize.width() / 2), int(DragNodeIcon.iconSize.height() / 2))
+        self.nodePositions.append(correctedPos)
         self.update()
 
     def updateNodePositions(self, index, position):
-        print(f"Node added at index Updating node position at {index}, new position: {position}")
-        self.nodePositions[index] = position
-        self.update()
+        correctedPos = position + QPoint(int(DragNodeIcon.iconSize.width() / 2), int(DragNodeIcon.iconSize.height() / 2))
+        if index <len(self.nodePositions):
+            self.nodePositions[index] = correctedPos
+            self.update()
     
     def paintEvent(self, event):
+        
         painter = QPainter(self)       
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        pen = QPen(QColor(Qt.GlobalColor.black), 2)
+        pen = QPen(QColor(Qt.GlobalColor.black), 1)
         painter.setPen(pen)
-
-        for i in range(len(self.nodePositions)):
-            for j in range(i + 1, len(self.nodePositions)):
-                painter.drawLine(self.nodePositions[i], self.nodePositions[j])
         
+        if len(self.nodePositions) >= 2:
+            for i in range(len(self.nodePositions)):
+                for j in range(i + 1, len(self.nodePositions)):
+                    painter.drawLine(self.nodePositions[i], self.nodePositions[j])
+    
+    def removeNodePosition(self, index):
+        if 0<= index < len(self.nodePositions):
+            self.nodePositions.pop(index)
+            self.update()
 #----------------------------------------
 #Main Window
 #----------------------------------------  
@@ -902,6 +913,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
     b = None
     selected_icon = None
     
+   
 
     
     def __init__(self):
@@ -926,8 +938,10 @@ class MyApp(QMainWindow, Ui_scr_Main):
         self.validDataWorkerTimer.timeout.connect(self.automaticAdditionOfData)
         
         #Draw Lines Between Nodes
-        self.lineDrawer = LineDrawer(parent=self.fr_VisualArea)
-        self.lineDrawer.resize(self.fr_VisualArea.size())
+        self.lineDrawer = LineDrawer(self.fr_VisualArea)
+        self.lineDrawer.setGeometry(self.fr_VisualArea.geometry())
+        self.lineDrawer.setObjectName("lineDrawer")
+        self.lineDrawer.raise_()
         
 
         #List for network overview
@@ -1240,15 +1254,18 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
             newNode.ID = addedNode.ID
             
-            self.nodeIconMappings[newNode] = self.listWidget.item(self.listWidget.count() - 1)
+            #self.nodeIconMappings[newNode] = self.listWidget.item(self.listWidget.count() - 1)
 
             #Associate with the UI
-            list_item = self.lst_Overview.item(self.lst_Overview.count() - 1)
-            self.nodeIconMappings[newNode] = list_item
+            #list_item = self.lst_Overview.item(self.lst_Overview.count() - 1)
+            #self.nodeIconMappings[newNode] = list_item
 
             #Update List
             nodelist = self.listWidget.item(self.listWidget.count() - 1)
             self.nodeIconMappings[newNode] = nodelist
+
+
+
 
             #Add Label
             newNode.setToolTip(f"ID: {addedNode.ID}, Node: {addedNode.name}, trust: {addedNode.trust}")
@@ -1279,6 +1296,9 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
             self.updateTrustValuesInList()   
             self.updateMessagesTable()
+
+
+            self.lineDrawer.removeNodePosition(nodeIcon.ID)
             
 
             
@@ -1364,7 +1384,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
 
             icon = "Assets/Images/Icons/Node_Icon_Valid.png"
-            print(f"Node: {node.ID}, undergoing change")
+            #print(f"Node: {node.ID}, undergoing change")
             if node.Attacker:
                 if node in self.b.getPrimeNodes():
                         icon = "Assets/Images/Icons/Node_Icon_Primary_Attacker.png"
@@ -1504,15 +1524,20 @@ class MyApp(QMainWindow, Ui_scr_Main):
         self.lineDrawer.updateNodePositions(index, position)
         self.lineDrawer.update()
 
+    def resizeEvent(self, event):
+        self.lineDrawer.resize(self.fr_VisualArea.size())
+
                 
 
 
 class DragNodeIcon(QtWidgets.QLabel):
+    iconSize = QSize(50, 50)
     def __init__(self, parent=None, blockchain=None):
         super(DragNodeIcon, self).__init__(parent)
         self.contextMenu = QtWidgets.QMenu()
         self.b = blockchain
         self.node = None
+        
 
         #Add Option To Remove
         self.removeAction = QAction("Remove Node", self)
@@ -1545,7 +1570,7 @@ class DragNodeIcon(QtWidgets.QLabel):
                 index = self.myAppInstance.nodeIconMappings[self]
                 index = self.myAppInstance.listWidget.row(index)
                 self.myAppInstance.updateNodePositions(index, self.pos())
-                print(f"Node noved, index: {index}, position: {self.pos()}")
+                #print(f"Node noved, index: {index}, position: {self.pos()}")
 
             
     def mouseMoveEvent(self, event):
