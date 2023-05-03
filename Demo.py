@@ -27,7 +27,7 @@ bftMessages = []
 #Class For Adding Nodes To The Network
 #------------------------------------------------------------------------
 class Node:
-    def __init__(self, nodeID, prime, nodes, ntwTimeAdded, Attacker ,trust=0, blockchain=None, name="None", ui=None, ):
+    def __init__(self, nodeID, prime, nodes, ntwTimeAdded, Attacker ,trust=0, blockchain=None, name="None", ui=None, disabled=False):
 
 
 
@@ -48,6 +48,8 @@ class Node:
         self.ntwTimeAdded = ntwTimeAdded
         self.timeAdded = datetime.now()
         self.Attacker = Attacker
+        self.disabled = disabled
+        
 
 
         
@@ -96,7 +98,7 @@ class Node:
         #if primeNode.ID == self.ID:
 
         primeNodes = self.selectPrimeNodes()
-        if primeNodes is not None:
+        if primeNodes is not None and not self.disabled:
             tempchain = copy.deepcopy(self.blockchain)
             newBlock = tempchain.addNewBlock(data)
             minedblock = tempchain.mineBlockOnNode(newBlock)
@@ -129,7 +131,7 @@ class Node:
     #Send a Message
     #check to see if node still exists
     def nodePresent(self, target):
-        return 0 <= target < len(self.nodes)
+        return 0 <= target < len(self.nodes) and not self.nodes[target].disabled
     
     def send(self, target, message):
         if self.nodePresent(target):
@@ -144,7 +146,7 @@ class Node:
         
         
         for node in self.nodes:
-            if node != self:
+            if node != self and not node.disabled:
                 #print(f"Node {self.ID} sending msg to node {node.ID} : {msg.data}")
                 node.recieve(msg)
                 global bftMessages
@@ -319,6 +321,11 @@ class Node:
                         if node.ID == msg.data['origin']:
                             node.awardTrust(trust=1)
                             break
+                    #Remove a Node Below trust threshhold
+                    for node in self.nodes:
+                        if not node.disabled and node.trust == 0:
+                            node.disabled = True
+
 
 
                 #reset commits and prepares
@@ -357,7 +364,7 @@ class Node:
             print(f"Node: {self.ID} invalid sequence")
             return False
         
-        if msg.data['sender'] not in [node.ID for node in self.nodes]:
+        if msg.data['sender'] not in [node.ID and not node.disabled for node in self.nodes]:
             print(f"Node: {self.ID} invalid sender")
             return False
         
@@ -365,7 +372,8 @@ class Node:
 
     def getSize(self, nodes):
         #Find total nodes
-        networkNodeTotal = len(nodes)
+
+        networkNodeTotal = len([node for node in nodes if not node.diabled])
 
         #calculate the maximum nodes Byzantine Fault Tolerance can handle (2f + 1)
         faultyNodes = (networkNodeTotal - 1) // 4
@@ -481,9 +489,11 @@ class Blockchain:
         self.primeNode = None
         self.view = 0
 
+
     def removeNode(self, node):
         if node in self.nodes:
-            self.nodes.remove(node)
+
+            node.disabled = True
 
     #Check to see if block already exists
     def hasBlock(self, block):
@@ -502,39 +512,40 @@ class Blockchain:
     #Get Prime Nodes
     def getPrimeNodes(self):
         #sort the nodes in decending order based upon their trust
-        sortedNodes = sorted(self.nodes, key=lambda node: node.trust, reverse=True)
+        sortedNodes = sorted(filter(lambda node: not node.disabled, self.nodes), key=lambda node: node.trust, reverse=True)
 
         #Get 10% of nodes with highest trust
         bestNodes = max(4, int(len(self.nodes) * 0.1))
         return sortedNodes[:bestNodes]
 
     def backupPrimeNode(self):
-        networkTrust = sum(node.trust for node in self.nodes)
+        networkTrust = sum(node.trust and not node.disabled for node in self.nodes)
         threshold = random.uniform(0, networkTrust)
         currentNodeTrust = 0
         maxTrustNode = None
         maxTrust = -1
 
         for node in self.nodes:
-            currentNodeTrust = node.trust
-            if currentNodeTrust >= threshold:
-                return [node]
+            if not node.disabled:
+                currentNodeTrust = node.trust
+                if currentNodeTrust >= threshold:
+                    return [node]
             
-            #Get node of highest trust
-            if currentNodeTrust > maxTrust:
-                maxTrustNode = node
-                maxTrust = currentNodeTrust
+                #Get node of highest trust
+                if currentNodeTrust > maxTrust:
+                    maxTrustNode = node
+                    maxTrust = currentNodeTrust
 
-        #Return Node of highest trust
-        if maxTrustNode:
-            return [maxTrustNode]
-        else:
-            print("No trustworthy node found")
-            return []
+            #Return Node of highest trust
+            if maxTrustNode:
+                return [maxTrustNode]
+            else:
+                print("No trustworthy node found")
+                return []
 
     #Proof Of stake mechanism
     def provideWork(self):
-        networkTrust = sum(node.trust for node in self.nodes)
+        networkTrust = sum(node.trust and not node.disabled for node in self.nodes)
         primeNodes = self.nodes[0].selectPrimeNodes()
         #threshold = random.uniform(0, networkTrust)
         #currentNodeTrust = 0
@@ -551,8 +562,12 @@ class Blockchain:
 
     #Syncronising Nodes with the established blockchain
     def addNode(self, ntwTimeAdded, Attacker, trust=0, name=None):
-        
         nodeID = len(self.nodes)
+        if nodeID in self.nodes:
+            nodeID += 2
+ 
+            
+        
         prime = False
         node = Node(nodeID, prime, self.nodes, ntwTimeAdded, Attacker, trust, blockchain=self, name=name)
         
@@ -885,7 +900,7 @@ class LineDrawer(QWidget):
 
     def updateNodePositions(self, index, position):
         correctedPos = position + QPoint(int(DragNodeIcon.iconSize.width() / 2), int(DragNodeIcon.iconSize.height() / 2))
-        if index <len(self.nodePositions):
+        if index <len(self.nodePositions) and index != QPoint(-1,-1):
             self.nodePositions[index] = correctedPos
             self.update()
     
@@ -893,17 +908,20 @@ class LineDrawer(QWidget):
         
         painter = QPainter(self)       
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        pen = QPen(QColor(Qt.GlobalColor.black), 1)
+        pen = QPen(QColor(Qt.GlobalColor.gray), 1)
         painter.setPen(pen)
+
+        sortedList = [pos for pos in self.nodePositions if pos is not None]
         
-        if len(self.nodePositions) >= 2:
-            for i in range(len(self.nodePositions)):
-                for j in range(i + 1, len(self.nodePositions)):
-                    painter.drawLine(self.nodePositions[i], self.nodePositions[j])
+        if len(sortedList) >= 2:
+            for i in range(len(sortedList)):
+                for j in range(i + 1, len(sortedList)):
+                            painter.drawLine(sortedList[i], sortedList[j])
+                            print(f"position of node is {sortedList[i]}")
     
     def removeNodePosition(self, index):
         if 0<= index < len(self.nodePositions):
-            self.nodePositions.pop(index)
+            self.nodePositions[index] = None
             self.update()
 #----------------------------------------
 #Main Window
@@ -1289,13 +1307,14 @@ class MyApp(QMainWindow, Ui_scr_Main):
             self.b.removeNode(node)
 
             if nodeIcon in self.nodeIconMappings:
-                list_item = self.nodeIconMappings.pop(nodeIcon)
+                nodeIcon.setVisible(False)
+                list_item = self.nodeIconMappings[nodeIcon]
                 row = self.listWidget.row(list_item)
-                self.listWidget.takeItem(row)
-            nodeIcon.deleteLater()
+                list_item.setHidden(True)
 
             self.updateTrustValuesInList()   
             self.updateMessagesTable()
+            self.updateAllNodeIcons()
 
 
             self.lineDrawer.removeNodePosition(nodeIcon.ID)
@@ -1461,33 +1480,33 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
                     #Select Node to add data
                     randomNode = random.choice(self.b.nodes)
-
-                    if randomNode.Attacker:
-                        data = ["Mallicious-Data-1", "Mallicious-Data-2", "Mallicious-Data-3", "Mallicious-Data-4", "Mallicious-Data-5", "Mallicious-Data-6", "Mallicious-Data-7", "Mallicious-Data-8", "Mallicious-Data-9", "Mallicious-Data-10"]
-                        randomData = random.choice(data)
-                        randomNode.dataChangeAttack(data)
-                    else:
-
-                        #Data 
-                        data = ["Data-Entry-1", "Data-Entry-2", "Data-Entry-3", "Data-Entry-4", "Data-Entry-5", "Data-Entry-6", "Data-Entry-7", "Data-Entry-8", "Data-Entry-9", "Data-Entry-10"]
-
-                        #Select Random Data
-                        randomData = random.choice(data)
-
-                        #Add Block 
-                        if randomNode.addBlock(randomData) and randomData not in self.b.chain:
-                            randomNode.addBlock(randomData)
-                            blockID = len(self.b.chain)
-                
-                            #Update UI
-                            self.updateBlockChainTable()
-                            self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block ID: {blockID}")
-                            self.updateTrustValuesInList()
-                            self.updateAllNodeIcons()
+                    if not randomNode.disabled:
+                        if randomNode.Attacker:
+                            data = ["Mallicious-Data-1", "Mallicious-Data-2", "Mallicious-Data-3", "Mallicious-Data-4", "Mallicious-Data-5", "Mallicious-Data-6", "Mallicious-Data-7", "Mallicious-Data-8", "Mallicious-Data-9", "Mallicious-Data-10"]
+                            randomData = random.choice(data)
+                            randomNode.dataChangeAttack(data)
                         else:
-                            self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block Failed To Add")
+
+                            #Data 
+                            data = ["Data-Entry-1", "Data-Entry-2", "Data-Entry-3", "Data-Entry-4", "Data-Entry-5", "Data-Entry-6", "Data-Entry-7", "Data-Entry-8", "Data-Entry-9", "Data-Entry-10"]
+
+                            #Select Random Data
+                            randomData = random.choice(data)
+
+                            #Add Block 
+                            if randomNode.addBlock(randomData) and randomData not in self.b.chain:
+                                randomNode.addBlock(randomData)
+                                blockID = len(self.b.chain)
+                
+                                #Update UI
+                                self.updateBlockChainTable()
+                                self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block ID: {blockID}")
+                                self.updateTrustValuesInList()
+                                self.updateAllNodeIcons()
+                            else:
+                                self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block Failed To Add")
                     
-                        self.updateMessagesTable()
+                            self.updateMessagesTable()
             #Error Prompt
             except:
                 prompt = QDialog()
@@ -1523,6 +1542,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
     def updateNodePositions(self, index,  position):
         self.lineDrawer.updateNodePositions(index, position)
         self.lineDrawer.update()
+        self.updateAllNodeIcons()
 
     def resizeEvent(self, event):
         self.lineDrawer.resize(self.fr_VisualArea.size())
