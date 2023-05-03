@@ -17,8 +17,11 @@ from datetime import datetime
 
 
 
-global bftMessages
-bftMessages = []
+class ApplicationData:
+    def __init__(self):
+        self.bftMessages = []
+        self.simplifiedbftMessages =[]
+        
 
 
 #------------------------------------------------------------------------
@@ -27,9 +30,10 @@ bftMessages = []
 #Class For Adding Nodes To The Network
 #------------------------------------------------------------------------
 class Node:
-    def __init__(self, nodeID, prime, nodes, ntwTimeAdded, Attacker ,trust=0, blockchain=None, name="None", ui=None, disabled=False):
+    def __init__(self, appData, nodeID, prime, nodes, ntwTimeAdded, Attacker ,trust=0, blockchain=None, name="None", ui=None, disabled=False):
 
-
+        #Update tables for appliction
+        self.appData = appData
 
         #Initialising the Node
         self.prime = prime
@@ -50,11 +54,6 @@ class Node:
         self.Attacker = Attacker
         self.disabled = disabled
         
-
-
-        
-
-
         if blockchain is None:
             self.blockchain = Blockchain()
         else:
@@ -70,24 +69,25 @@ class Node:
     #Select Multiple validators
     def selectPrimeNodes(self):
         pNodes = self.blockchain.getPrimeNodes()
-        numPrimeNodes = max(1, int(len(self.nodes) * 0.1))
-        weight = [node.trust for node in pNodes]
+        nonDisabledNodes = [node for node in self.nodes if not self.disabled]
+        numPrimeNodes = max(1, int(len(nonDisabledNodes) * 0.1))
+        weight = [node.trust for node in nonDisabledNodes]
 
-        if not pNodes or not weight:
+        if not nonDisabledNodes or not weight:
             print("No Prime Nodes Available")
             print("prime nodes", pNodes)
             print("weight", weight)
             print("Mex amount of prime nodes", numPrimeNodes)
             print("Providing a new algorithm to select prime node")
             return self.blockchain.backupPrimeNode()
-        elif len(pNodes) != len(weight):
+        elif len(nonDisabledNodes) != len(weight):
             print("Error: Lists have different lengths")
         elif sum(weight) <= 0:
             print("Sum of total trust is 0 or negative")
             print("Providing a new algorithm to select prime node")
             return self.blockchain.backupPrimeNode()
         else:
-            isPrime = random.choices(pNodes, weights=weight, k=numPrimeNodes)
+            isPrime = random.choices(nonDisabledNodes, weights=weight, k=numPrimeNodes)
             return isPrime
     
     #Selecting the primary node for Byzantine Fault Tolerance
@@ -135,11 +135,12 @@ class Node:
     
     def send(self, target, message):
         if self.nodePresent(target):
-            print(f"Node {self.ID} sending msg to node {target} : {message.data}")
+            print(f"Node {self.ID} sending msg to node {target}")
             self.nodes[target].recieve(message)
 
-            global bftMessages
-            bftMessages.append(message)
+            simpleMsg = f"Node {self.ID} sending msg to node {target} : {message.data}"
+            self.addMessageToApplicationData(message, simpleMsg)
+
 
     #Function to broadcast messages to the network
     def broadcast(self, msg, updateTable=None):
@@ -147,10 +148,10 @@ class Node:
         
         for node in self.nodes:
             if node != self and not node.disabled:
-                #print(f"Node {self.ID} sending msg to node {node.ID} : {msg.data}")
+                print(f"Node {self.ID} sending msg to node {node.ID} : {msg.data}")
                 node.recieve(msg)
-                global bftMessages
-                bftMessages.append(msg)
+                simpleMsg = f"Node {self.ID} sending msg to node {node}"
+                self.addMessageToApplicationData(msg, simpleMsg)
 
     #Recieve a Message
     def recieve(self, msg):
@@ -173,7 +174,9 @@ class Node:
                 #Decrease Trust
         
 
-        print(f"Node {self.ID} recieved msg: {msg.sender}")
+        print(f"Node: {self.ID} recieved msg from Node: {msg.sender}")
+        simpleMsg = f"Node: {self.ID} recieved msg from Node: {msg.sender}"
+        self.addMessageToApplicationData(None, simpleMsg)
             
 
 
@@ -203,13 +206,14 @@ class Node:
             self.broadcast(prePrepMsg)
         else:
             print("Node is not primary and cannot handle requests")
+            simpleMsg = f"Node: {self.ID} Node is not primary and cannot handle requests"
+            self.addMessageToApplicationData(None, simpleMsg)
 
         
     #PRE PREPARE MSG
     def handlePrePrepare(self, msg):
         print(f"Node {self.ID} node Handling PrePrepare")
         if self.validPrePrepare(msg):
-
             blockData = json.loads(msg.data['data'])
             tempBlock = Block(**blockData)
             Prepare = {
@@ -220,14 +224,12 @@ class Node:
             'sender' : self.ID,
             'origin': msg.data['sender'],
             'data' : msg.data['data']
-
         }
-        
-        
-            
             self.prepareMsg(Prepare)
         else:
             print((f"Node {self.ID} node returned invalid PrePrepare"))
+            simpleMsg = f"Node: {self.ID} node returned invalid PrePrepare"
+            self.addMessageToApplicationData(None, simpleMsg)
 
     def validPrePrepare(self, msg):
         
@@ -244,8 +246,6 @@ class Node:
         
         if not self.blockchain.mineCheck(msg):
             return False
-        
-        
         return True
 
 
@@ -269,8 +269,6 @@ class Node:
             }
         prepareMsgOBJ = Message(MessageType.Commit, self.ID, prepareMsg, msg['origin'])
         self.broadcast(prepareMsgOBJ)
-
-
 
     def handlePrepare(self, msg):
         if self.validPrepare(msg) or self.Attacker:#and msg not in self.prepare:
@@ -298,6 +296,8 @@ class Node:
             self.broadcast(commitMsgOBJ)
         else:
             print("Message Unable to prepare")
+            simpleMsg = f"Node: {self.ID} Message Failed Preperation"
+            self.addMessageToApplicationData(None, simpleMsg)
 
     #COMMIT MSG
     def handleCommit(self, msg):
@@ -325,9 +325,7 @@ class Node:
                     for node in self.nodes:
                         if not node.disabled and node.trust == 0:
                             node.disabled = True
-
-
-
+                            
                 #reset commits and prepares
                 self.prepare = []
                 self.commit = []
@@ -347,25 +345,37 @@ class Node:
                 #self.blockchain.addBlock(tempBlock)
             else:
                 print(f"Node: {self.ID} not enough prepares")
+                simpleMsg = f"Node: {self.ID} not enough prepares"
+                self.addMessageToApplicationData(None, simpleMsg)
         else:
             print(f"Node: {self.ID} invalid commit")
+            simpleMsg = f"Node: {self.ID} invalid commit"
+            self.addMessageToApplicationData(None, simpleMsg)
 
     def validCommit(self, msg):
 
         if msg.type != MessageType.Commit:
             print(f"Node: {self.ID} invalid type")
+            simpleMsg = f"Node: {self.ID} invalid type"
+            self.addMessageToApplicationData(None, simpleMsg)
             return False
         
         if msg.data['view'] != self.blockchain.view:
             print(f"Node: {self.ID} invalid view")
+            simpleMsg = f"Node: {self.ID} invalid view"
+            self.addMessageToApplicationData(None, simpleMsg)
             return False
         
         if not (0 <= msg.data['sequence'] <= self.msgNumber + 1):
             print(f"Node: {self.ID} invalid sequence")
+            simpleMsg = f"Node: {self.ID} invalid sequence"
+            self.addMessageToApplicationData(None, simpleMsg)
             return False
         
         if msg.data['sender'] not in [node.ID and not node.disabled for node in self.nodes]:
             print(f"Node: {self.ID} invalid sender")
+            simpleMsg = f"Node: {self.ID} invalid sender"
+            self.addMessageToApplicationData(None, simpleMsg)
             return False
         
         return True
@@ -403,6 +413,8 @@ class Node:
     
     def handleReply(self,msg):
         print(f"Node {self.ID} recieved reply: {msg.data['Data']}")
+        simpleMsg = f"Node {self.ID} recieved reply: {msg.data['Data']}"
+        self.addMessageToApplicationData(None, simpleMsg)
 
     #To Commit Block
     def commitBlock(self, msg):
@@ -430,12 +442,11 @@ class Node:
         else:
             print(f"Node isnt of attacker type")
 
-
-
-        
-    
-            
-
+    def addMessageToApplicationData(self, message, smplMsg):
+        if message is not None:
+            self.appData.bftMessages.append(message)
+        if smplMsg is not None:
+            self.appData.simplifiedbftMessages.append(smplMsg)
 
 
 #------------------------------------------------------------------------
@@ -561,7 +572,7 @@ class Blockchain:
         #        return node
 
     #Syncronising Nodes with the established blockchain
-    def addNode(self, ntwTimeAdded, Attacker, trust=0, name=None):
+    def addNode(self, appData, ntwTimeAdded, Attacker, trust=0, name=None):
         nodeID = len(self.nodes)
         if nodeID in self.nodes:
             nodeID += 2
@@ -569,7 +580,7 @@ class Blockchain:
             
         
         prime = False
-        node = Node(nodeID, prime, self.nodes, ntwTimeAdded, Attacker, trust, blockchain=self, name=name)
+        node = Node(appData, nodeID, prime, self.nodes, ntwTimeAdded, Attacker, trust, blockchain=self, name=name)
         
         self.nodes.append(node)
         print(f"Node: {node.ID} now added and synced to the network")
@@ -751,6 +762,8 @@ class PropertiesDialog(QMainWindow, Ui_Properties):
         super().__init__()
         self.setupUi(self)
 
+        
+
         #Get Variables
         self.NodeID = NodeID
         self.my_app_instance = my_app_instance
@@ -764,6 +777,15 @@ class PropertiesDialog(QMainWindow, Ui_Properties):
 
         self.setVariables()
         self.update()
+
+        #Set Variables for Application Data
+        self.appData = self.my_app_instance.appData
+
+        #set table
+        self.tbl_prop_msgs.setColumnCount(5)
+        headers = ["Time","Type", "Sender ID", "Origin","Data"]
+        self.tbl_prop_msgs.setHorizontalHeaderLabels(headers)
+
 
 
         
@@ -828,29 +850,31 @@ class PropertiesDialog(QMainWindow, Ui_Properties):
                 self.tbl_prop_Blockchain.setItem(row, 4, QTableWidgetItem(str(block.previousHash)))
             self.tbl_prop_Blockchain.resizeColumnsToContents()
 
-    def UpdateMessages(self, selectedNode):
-        if selectedNode.blockchain.chain is not None:
-            global bftMessages
-            nodeMsg = []
-            for row, msg in enumerate(bftMessages):
-                if msg.sender == selectedNode.ID and msg not in nodeMsg:
-                    nodeMsg.append(msg)
-                
-            if bftMessages is not None:
-                self.tbl_prop_msgs.clear()
-                self.tbl_prop_msgs.setRowCount(len(nodeMsg))
-                self.tbl_prop_msgs.setColumnCount(5)
-                headers = ["Time","Type", "Sender ID", "Origin","Data"]
-                self.tbl_prop_msgs.setHorizontalHeaderLabels(headers)
 
-            for row, msg in enumerate(nodeMsg):
-                if msg.sender == selectedNode.ID:
-                    self.tbl_prop_msgs.setItem(row, 0, QTableWidgetItem(str(msg.datetime.strftime("%H:%M:%S"))))
-                    self.tbl_prop_msgs.setItem(row, 1, QTableWidgetItem(str(msg.type)))
-                    self.tbl_prop_msgs.setItem(row, 2, QTableWidgetItem(str(msg.sender)))
-                    self.tbl_prop_msgs.setItem(row, 3, QTableWidgetItem(str(msg.origin)))
-                    self.tbl_prop_msgs.setItem(row, 4, QTableWidgetItem(str(msg.data)))
-                    self.tbl_prop_msgs.resizeColumnsToContents()
+
+    def UpdateMessages(self, selectedNode):
+        if self.appData.bftMessages is not None:
+
+            
+            
+            sender = [msg for msg in self.appData.bftMessages if msg.sender == self.NodeID]
+            numRows = self.tbl_prop_msgs.rowCount()
+            numNewRow = len(sender) - numRows
+            if numNewRow > 0:
+                self.tbl_prop_msgs.setRowCount(numRows + numNewRow)
+                for row, msg in enumerate(sender):
+                    if msg.sender == selectedNode.ID:
+                        self.tbl_prop_msgs.setItem(row, 0, QTableWidgetItem(str(msg.datetime.strftime("%H:%M:%S"))))
+                        self.tbl_prop_msgs.setItem(row, 1, QTableWidgetItem(str(msg.type)))
+                        self.tbl_prop_msgs.setItem(row, 2, QTableWidgetItem(str(msg.sender)))
+                        self.tbl_prop_msgs.setItem(row, 3, QTableWidgetItem(str(msg.origin)))
+                        self.tbl_prop_msgs.setItem(row, 4, QTableWidgetItem(str(msg.data)))
+                self.tbl_prop_msgs.resizeColumnsToContents()
+
+            
+
+            
+
 
     def update(self):
         self.updateTimer.timeout.connect(self.updateVariables)
@@ -873,14 +897,58 @@ class PropertiesDialog(QMainWindow, Ui_Properties):
 #---------------------------------------- 
 class Worker(QThread):
     finished = pyqtSignal()
-    
-    def __init__(self, func):
-        super().__init__()
-        self.func = func
-    
+    update_ui = pyqtSignal(dict)
+
+    def __init__(self, blockchain, stopwatch, *args, **kwargs):
+        super(Worker, self).__init__(*args, **kwargs)
+        self.b = blockchain
+        self.stopwatch = stopwatch
+
     def run(self):
-        self.func()
-        self.finished.emit()
+        self.performAddData()
+
+    def performAddData(self):
+        sortedList = [node for node in self.b.nodes if node is not None and not node.disabled]
+        if sortedList is not None and len(sortedList) > 0:
+                
+                    #Data To Add To Overview
+                    ntwTime = self.stopwatch.toString("hh:mm:ss")
+                    Time = datetime.now().strftime("%H:%M:%S")
+
+
+
+                    #Select Node to add data
+                    randomNode = random.choice(sortedList)
+                    if randomNode.Attacker:
+                        data = ["Mallicious-Data-1", "Mallicious-Data-2", "Mallicious-Data-3", "Mallicious-Data-4", "Mallicious-Data-5", "Mallicious-Data-6", "Mallicious-Data-7", "Mallicious-Data-8", "Mallicious-Data-9", "Mallicious-Data-10"]
+                        randomData = random.choice(data)
+                        randomNode.dataChangeAttack(data)
+                    else:
+
+                        #Data 
+                        data = ["Data-Entry-1", "Data-Entry-2", "Data-Entry-3", "Data-Entry-4", "Data-Entry-5", "Data-Entry-6", "Data-Entry-7", "Data-Entry-8", "Data-Entry-9", "Data-Entry-10"]
+
+                        #Select Random Data
+                        randomData = random.choice(data)
+                        addblock = False
+                        #Add Block 
+                        if randomNode.addBlock(randomData) and randomData not in self.b.chain:
+                            randomNode.addBlock(randomData)
+                            blockID = len(self.b.chain)
+                            addblock = True
+
+                    
+                    ui_data = {
+                        'Blockchain_Updated': addblock,
+                        'Block_ID' : blockID,
+                        'ntwTime' : ntwTime,
+                        'Time' : Time,
+                    }
+                    self.update_ui.emit(ui_data)
+
+
+
+    
 
 #----------------------------------------
 #Class To Join Nodes On UI
@@ -930,6 +998,17 @@ class LineDrawer(QWidget):
 class MyApp(QMainWindow, Ui_scr_Main):
     b = None
     selected_icon = None
+    worker = None
+    
+
+    def update_ui(self, ui_data):
+        if ui_data['Blockchain_Updated']:
+            self.updateBlockChainTable()
+            self.updateMessagesTable()
+            self.updateSimpleMessagesTable()
+            self.updateTrustValuesInList()   
+            self.updateAllNodeIcons()
+            self.lst_Overview.addItem(f"Time: {ui_data['Time']} - Network Time: {ui_data['ntwTime']} - Block {ui_data['Block_ID']} Added To the Network")
     
    
 
@@ -960,6 +1039,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
         self.lineDrawer.setGeometry(self.fr_VisualArea.geometry())
         self.lineDrawer.setObjectName("lineDrawer")
         self.lineDrawer.raise_()
+
         
 
         #List for network overview
@@ -972,6 +1052,9 @@ class MyApp(QMainWindow, Ui_scr_Main):
         #List For Messages sent during byzentine fault tollerence
         self.tbl_Messages.findChild(QtWidgets.QTableWidget, "tbl_Messages")
 
+        #Obtain App Data
+        self.appData = ApplicationData()
+
 
         #Drag and Drop peramiters for area
         self.fr_VisualArea.setAcceptDrops(True)
@@ -981,6 +1064,16 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
         #For highlighting elements after they been clicked in the list
         self.listWidget.itemClicked.connect(self.onListItemClick)
+
+        #Initialise Table
+        self.tbl_Messages.setColumnCount(6)
+        headers = ["Time", "Network Time","Type", "Sender ID", "Origin","Data"]
+        self.tbl_Messages.setHorizontalHeaderLabels(headers)
+
+        #Initialise simple table
+        self.tbl_simpleMessages.setColumnCount(1)
+        headers = ["Message Log"]
+        self.tbl_simpleMessages.setHorizontalHeaderLabels(headers)
 
         self.btn_AddNode.setObjectName("btn_AddNode")
 
@@ -1070,8 +1163,8 @@ class MyApp(QMainWindow, Ui_scr_Main):
             #Update Ui
             self.updateBlockChainTable()
             self.updateMessagesTable()
+            self.updateSimpleMessagesTable()
             self.updateTrustValuesInList()   
-            self.updateMessagesTable()
             self.updateAllNodeIcons()
         else:
             Valid = False
@@ -1135,8 +1228,8 @@ class MyApp(QMainWindow, Ui_scr_Main):
                 self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime} ID: {ID}, Block added to Node: {node.name}, with data of {Data}")
                 self.updateBlockChainTable()
                 self.updateMessagesTable()
+                self.updateSimpleMessagesTable()
                 self.updateTrustValuesInList()   
-                self.updateMessagesTable()
                 self.updateAllNodeIcons()
 
             #Error if node dosnt exist
@@ -1222,15 +1315,14 @@ class MyApp(QMainWindow, Ui_scr_Main):
     #Messages Functions
     #----------------------------------------
     def updateMessagesTable(self):
-        global bftMessages
-        if bftMessages is not None:
-            self.tbl_Messages.clear()
-            self.tbl_Messages.setRowCount(len(bftMessages))
-            self.tbl_Messages.setColumnCount(6)
-            headers = ["Time", "Network Time","Type", "Sender ID", "Origin","Data"]
-            self.tbl_Messages.setHorizontalHeaderLabels(headers)
+        if self.appData.bftMessages is not None:
+            numRows = self.tbl_Messages.rowCount()
+            numNewRow = len(self.appData.bftMessages) - numRows
 
-            for row, msg in enumerate(bftMessages):
+            
+        if numNewRow > 0:
+            self.tbl_Messages.setRowCount(numRows + numNewRow)
+            for row, msg in enumerate(self.appData.bftMessages):
                 self.tbl_Messages.setItem(row, 0, QTableWidgetItem(str(msg.datetime.strftime("%H:%M:%S"))))
                 self.tbl_Messages.setItem(row, 1, QTableWidgetItem(str(self.stopwatch.toString("hh:mm:ss"))))
                 self.tbl_Messages.setItem(row, 2, QTableWidgetItem(str(msg.type)))
@@ -1240,6 +1332,20 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
 
             self.tbl_Messages.resizeColumnsToContents()
+
+    def updateSimpleMessagesTable(self):
+        if self.appData.simplifiedbftMessages is not None:
+            numRows = self.tbl_simpleMessages.rowCount()
+            numNewRow = len(self.appData.simplifiedbftMessages) - numRows
+
+            
+        if numNewRow > 0:
+            self.tbl_simpleMessages.setRowCount(numRows + numNewRow)
+            for row, msg in enumerate(self.appData.simplifiedbftMessages):
+                self.tbl_simpleMessages.setItem(row, 0, QTableWidgetItem(msg))
+
+
+            self.tbl_simpleMessages.resizeColumnsToContents()
             
 
             
@@ -1258,7 +1364,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
     
     def addNewNodeHelper(self, node, Attacker, Trust):  
             ntwTime = self.stopwatch.toString("hh:mm:ss")
-            addedNode = self.b.addNode(ntwTimeAdded=ntwTime, trust=Trust, name=node, Attacker=Attacker)
+            addedNode = self.b.addNode(appData=self.appData, ntwTimeAdded=ntwTime, trust=Trust, name=node, Attacker=Attacker)
             Time = datetime.now().strftime("%H:%M:%S")
             ntwTime = self.stopwatch.toString("hh:mm:ss")
             self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time:  {ntwTime} - Name: {node} - ID: {addedNode.ID} - trust value: {Trust} - ACTION: added to the network")
@@ -1311,10 +1417,15 @@ class MyApp(QMainWindow, Ui_scr_Main):
                 list_item = self.nodeIconMappings[nodeIcon]
                 row = self.listWidget.row(list_item)
                 list_item.setHidden(True)
+            
+            ntwTime = self.stopwatch.toString("hh:mm:ss")
+            Time = datetime.now().strftime("%H:%M:%S")
 
             self.updateTrustValuesInList()   
             self.updateMessagesTable()
+            self.updateSimpleMessagesTable()
             self.updateAllNodeIcons()
+            self.lst_Overview.addItem(f"Time: {Time} - Network Time: {ntwTime} - Node ID: {node.ID} - Name {node.name} Removed From The Network")
 
 
             self.lineDrawer.removeNodePosition(nodeIcon.ID)
@@ -1468,68 +1579,37 @@ class MyApp(QMainWindow, Ui_scr_Main):
     #----------------------------------------
     def automaticAdditionOfData(self):
         if self.chk_PauseMining.isChecked():
-
-            try:
-                if self.b.nodes is not None:
-                    sortedList = [node for node in self.b.nodes if node is not None and not node.disabled]
-                else:
-                    sortedList = None
-
-                if sortedList is not None and len(sortedList) > 0:
-                
-                    #Data To Add To Overview
-                    ntwTime = self.stopwatch.toString("hh:mm:ss")
-                    Time = datetime.now().strftime("%H:%M:%S")
-
-
-
-                    #Select Node to add data
-                    randomNode = random.choice(sortedList)
-                    if randomNode.Attacker:
-                        data = ["Mallicious-Data-1", "Mallicious-Data-2", "Mallicious-Data-3", "Mallicious-Data-4", "Mallicious-Data-5", "Mallicious-Data-6", "Mallicious-Data-7", "Mallicious-Data-8", "Mallicious-Data-9", "Mallicious-Data-10"]
-                        randomData = random.choice(data)
-                        randomNode.dataChangeAttack(data)
-                    else:
-
-                        #Data 
-                        data = ["Data-Entry-1", "Data-Entry-2", "Data-Entry-3", "Data-Entry-4", "Data-Entry-5", "Data-Entry-6", "Data-Entry-7", "Data-Entry-8", "Data-Entry-9", "Data-Entry-10"]
-
-                        #Select Random Data
-                        randomData = random.choice(data)
-
-                        #Add Block 
-                        if randomNode.addBlock(randomData) and randomData not in self.b.chain:
-                            randomNode.addBlock(randomData)
-                            blockID = len(self.b.chain)
-                
-                            #Update UI
-                            self.updateBlockChainTable()
-                            self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block ID: {blockID}")
-                            self.updateTrustValuesInList()
-                            self.updateAllNodeIcons()
-                        else:
-                            self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block Failed To Add")
+            if self.b.nodes is not None:
+                self.worker = Worker(self.b, self.stopwatch)
+                self.worker.update_ui.connect(self.update_ui)
+                self.worker.start()
+            else:
+                self.errorPromptForAutoMine()
                     
-                        self.updateMessagesTable()
-            #Error Prompt
-            except:
-                prompt = QDialog()
-                prompt.setWindowTitle("No Nodes Available")
-                prompt.setModal(True)
 
-                #Message
-                lbl = QLabel("Add a node to the network before beginning Mining")
-                lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+                
+                
 
-                #Uncheck Box
-                self.chk_PauseMining.setChecked(False)
+                
+    
+    def errorPromptForAutoMine(self):
+        prompt = QDialog()
+        prompt.setWindowTitle("No Nodes Available")
+        prompt.setModal(True)
 
-                #Layout
-                layout = QVBoxLayout()
-                layout.addWidget(lbl)
-                prompt.setLayout(layout)
-                prompt.exec()
-            
+        #Message
+        lbl = QLabel("Add a node to the network before beginning Mining")
+        lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+
+        #Uncheck Box
+        self.chk_PauseMining.setChecked(False)
+
+        #Layout
+        layout = QVBoxLayout()
+        layout.addWidget(lbl)
+        prompt.setLayout(layout)
+        prompt.exec()
+
 
 
 
