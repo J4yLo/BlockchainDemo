@@ -373,7 +373,7 @@ class Node:
     def getSize(self, nodes):
         #Find total nodes
 
-        networkNodeTotal = len([node for node in nodes if not node.diabled])
+        networkNodeTotal = len([node for node in nodes if not node.disabled])
 
         #calculate the maximum nodes Byzantine Fault Tolerance can handle (2f + 1)
         faultyNodes = (networkNodeTotal - 1) // 4
@@ -917,7 +917,7 @@ class LineDrawer(QWidget):
             for i in range(len(sortedList)):
                 for j in range(i + 1, len(sortedList)):
                             painter.drawLine(sortedList[i], sortedList[j])
-                            print(f"position of node is {sortedList[i]}")
+                            #print(f"position of node is {sortedList[i]}")
     
     def removeNodePosition(self, index):
         if 0<= index < len(self.nodePositions):
@@ -1470,7 +1470,12 @@ class MyApp(QMainWindow, Ui_scr_Main):
         if self.chk_PauseMining.isChecked():
 
             try:
-                if self.b.nodes and len(self.b.nodes) > 0:
+                if self.b.nodes is not None:
+                    sortedList = [node for node in self.b.nodes if node is not None and not node.disabled]
+                else:
+                    sortedList = None
+
+                if sortedList is not None and len(sortedList) > 0:
                 
                     #Data To Add To Overview
                     ntwTime = self.stopwatch.toString("hh:mm:ss")
@@ -1479,34 +1484,33 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
 
                     #Select Node to add data
-                    randomNode = random.choice(self.b.nodes)
-                    if not randomNode.disabled:
-                        if randomNode.Attacker:
-                            data = ["Mallicious-Data-1", "Mallicious-Data-2", "Mallicious-Data-3", "Mallicious-Data-4", "Mallicious-Data-5", "Mallicious-Data-6", "Mallicious-Data-7", "Mallicious-Data-8", "Mallicious-Data-9", "Mallicious-Data-10"]
-                            randomData = random.choice(data)
-                            randomNode.dataChangeAttack(data)
-                        else:
+                    randomNode = random.choice(sortedList)
+                    if randomNode.Attacker:
+                        data = ["Mallicious-Data-1", "Mallicious-Data-2", "Mallicious-Data-3", "Mallicious-Data-4", "Mallicious-Data-5", "Mallicious-Data-6", "Mallicious-Data-7", "Mallicious-Data-8", "Mallicious-Data-9", "Mallicious-Data-10"]
+                        randomData = random.choice(data)
+                        randomNode.dataChangeAttack(data)
+                    else:
 
-                            #Data 
-                            data = ["Data-Entry-1", "Data-Entry-2", "Data-Entry-3", "Data-Entry-4", "Data-Entry-5", "Data-Entry-6", "Data-Entry-7", "Data-Entry-8", "Data-Entry-9", "Data-Entry-10"]
+                        #Data 
+                        data = ["Data-Entry-1", "Data-Entry-2", "Data-Entry-3", "Data-Entry-4", "Data-Entry-5", "Data-Entry-6", "Data-Entry-7", "Data-Entry-8", "Data-Entry-9", "Data-Entry-10"]
 
-                            #Select Random Data
-                            randomData = random.choice(data)
+                        #Select Random Data
+                        randomData = random.choice(data)
 
-                            #Add Block 
-                            if randomNode.addBlock(randomData) and randomData not in self.b.chain:
-                                randomNode.addBlock(randomData)
-                                blockID = len(self.b.chain)
+                        #Add Block 
+                        if randomNode.addBlock(randomData) and randomData not in self.b.chain:
+                            randomNode.addBlock(randomData)
+                            blockID = len(self.b.chain)
                 
-                                #Update UI
-                                self.updateBlockChainTable()
-                                self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block ID: {blockID}")
-                                self.updateTrustValuesInList()
-                                self.updateAllNodeIcons()
-                            else:
-                                self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block Failed To Add")
+                            #Update UI
+                            self.updateBlockChainTable()
+                            self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block ID: {blockID}")
+                            self.updateTrustValuesInList()
+                            self.updateAllNodeIcons()
+                        else:
+                            self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime}, Block Failed To Add")
                     
-                            self.updateMessagesTable()
+                        self.updateMessagesTable()
             #Error Prompt
             except:
                 prompt = QDialog()
