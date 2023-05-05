@@ -1,5 +1,7 @@
+from collections import Counter
 from enum import Enum
 import hashlib
+import math
 import random
 import sys
 from PyQt6 import QtWidgets, sip
@@ -22,6 +24,7 @@ class ApplicationData:
     def __init__(self):
         self.bftMessages = []
         self.simplifiedbftMessages =[]
+        self.voteMessages = []
         
 
 
@@ -67,28 +70,28 @@ class Node:
         self.addBlock(data, self.Attacker)
 
 
+
     #Select Multiple validators
     def selectPrimeNodes(self):
         pNodes = self.blockchain.getPrimeNodes()
-        nonDisabledNodes = [node for node in self.nodes if not self.disabled]
-        numPrimeNodes = max(1, int(len(nonDisabledNodes) * 0.1))
-        weight = [node.trust for node in nonDisabledNodes]
+        numPrimeNodes = max(1, int(len(pNodes) * 0.1))
+        weight = [node.trust for node in pNodes]
 
-        if not nonDisabledNodes or not weight:
+        if not pNodes or not weight:
             print("No Prime Nodes Available")
             print("prime nodes", pNodes)
             print("weight", weight)
             print("Mex amount of prime nodes", numPrimeNodes)
             print("Providing a new algorithm to select prime node")
             return self.blockchain.backupPrimeNode()
-        elif len(nonDisabledNodes) != len(weight):
+        elif len(pNodes) != len(weight):
             print("Error: Lists have different lengths")
         elif sum(weight) <= 0:
             print("Sum of total trust is 0 or negative")
             print("Providing a new algorithm to select prime node")
             return self.blockchain.backupPrimeNode()
         else:
-            isPrime = random.choices(nonDisabledNodes, weights=weight, k=numPrimeNodes)
+            isPrime = random.choices(pNodes, weights=weight, k=numPrimeNodes)
             return isPrime
     
     #Selecting the primary node for Byzantine Fault Tolerance
@@ -147,9 +150,12 @@ class Node:
         return 0 <= target < len(self.nodes) and not self.nodes[target].disabled
     
     def send(self, target, message):
+        node = target
         if self.nodePresent(target):
             #Debug Code
-            #print(f"Node {self.ID} sending msg to node {target}")
+            print(f"Node {self.ID} sending msg to node {target}")
+
+
             self.nodes[target].recieve(message)
 
             simpleMsg = f"Node {self.ID} sending msg to node {target} : {message.data}"
@@ -157,15 +163,18 @@ class Node:
 
 
     #Function to broadcast messages to the network
-    def broadcast(self, msg, updateTable=None):
-        
+    def broadcast(self, msg,):
+
         
         for node in self.nodes:
             if node != self and not node.disabled:
-                print(f"Node {self.ID} sending msg to node {node.ID} : {msg.data}")
-                node.recieve(msg)
-                simpleMsg = f"Node {self.ID} sending msg to node {node.ID}"
-                self.addMessageToApplicationData(msg, simpleMsg)
+                #print(f"Node {self.ID} sending msg to node {node.ID} : {msg.data}")
+                self.send(target=node.ID, message=msg)
+                #simpleMsg = f"Node {self.ID} sending msg to node {node.ID}"
+                #self.addMessageToApplicationData(msg, simpleMsg)
+
+                
+
 
     #Recieve a Message
     def recieve(self, msg):
@@ -192,6 +201,7 @@ class Node:
                 #Debug Code
                 #print (f"Compremised Request")
                 #Decrease Trust
+                #self.startVoteToDecreaseTrust(msg)
                 request ="Invalid"
         
 
@@ -208,7 +218,7 @@ class Node:
         msgValue = None
         request = msg.data
         #Debug Code
-        #print(f"Node {self.ID} node Handling Request")
+        print(f"Node {self.ID} node Handling Request")
         if self.primeNode():
             
 
@@ -235,27 +245,30 @@ class Node:
 
         
     #PRE PREPARE MSG
-    def handlePrePrepare(self, msg):
+    def handlePrePrepare(self, msg,):
+
+
+        #Debug code
         print(f"Node {self.ID} node Handling PrePrepare")
-        if self.validPrePrepare(msg):
-            blockData = json.loads(msg.data['request'])
-            tempBlock = Block(**blockData)
-            Prepare = {
-            'type': 'Prepare',
-            'view': msg.data['view'] ,
-            'block': tempBlock,
-            'sequence': msg.data['sequence'],
-            'sender' : self.ID,
-            'origin': msg.data['sender'],
-            'data' : msg.data['data'],
-            'chainCopy' : msg.data['chainCopy']
+        vote = self.validPrePrepare(msg)
+        blockData = json.loads(msg.data['request'])
+        tempBlock = Block(**blockData)
+        Prepare = {
+        'type': 'Prepare',
+        'view': msg.data['view'] ,
+        'block': tempBlock,
+        'sequence': msg.data['sequence'],
+        'sender' : self.ID,
+        'origin': msg.data['sender'],
+        'data' : msg.data['data'],
+        'chainCopy' : msg.data['chainCopy'],
+        'Vote': vote
         }
-            self.prepareMsg(Prepare)
-        else:
-            #Debug Code
-            #print((f"Node {self.ID} node returned invalid PrePrepare"))
-            simpleMsg = f"Node: {self.ID} node returned invalid PrePrepare"
-            self.addMessageToApplicationData(None, simpleMsg)
+        self.prepareMsg(Prepare)
+        #Debug Code
+        #print((f"Node {self.ID} node returned invalid PrePrepare"))
+        simpleMsg = f"Node: {self.ID} node returned invalid PrePrepare"
+        self.addMessageToApplicationData(None, simpleMsg)
 
     def validPrePrepare(self, msg):
         if self.Attacker:
@@ -273,13 +286,15 @@ class Node:
         
         
         if not self.blockchain.mineCheck(msg):
+            content['Vote'] = False
             return False
         return True
 
 
     #PREPARE MSG
     def prepareMsg(self, msg):
-        
+
+
         #add message sequence
         self.msgNumber += 1
         msgValue = self.msgNumber
@@ -294,16 +309,20 @@ class Node:
                 'Data' : msg['data'],
                 'block': msg['block'],
                 'origin': msg['origin'],
+                'vote': msg['Vote'],
             }
         prepareMsgOBJ = Message(MessageType.Commit, self.ID, prepareMsg, msg['origin'])
         self.broadcast(prepareMsgOBJ)
 
     def handlePrepare(self, msg):
-        if self.validPrepare(msg) and msg not in self.prepare or self.Attacker:#:
+
+
+        if msg not in self.prepare or self.Attacker:#:
             self.prepare.append(msg)
+            vote = self.validPrepare(msg) 
 
             #Debug Code
-            #print(f"Node {self.ID} node Handling Prepare")
+            print(f"Node {self.ID} node Handling Prepare")
 
             #Check for minimum required nodes
             if len(self.prepare) >= self.getSize(self.blockchain.getPrimeNodes()):
@@ -317,7 +336,8 @@ class Node:
                     'sequence': msgValue,
                     'request' : msg,
                     'sender' : self.ID,
-                    'origin': msg['origin']
+                    'origin': msg['origin'],
+                    'vote': vote
                 }
                 
             commitMsgOBJ = Message(MessageType.Commit, commitMsg, self.ID, msg['origin'])
@@ -330,33 +350,53 @@ class Node:
 
     #COMMIT MSG
     def handleCommit(self, msg):
+
+
         if self.validCommit(msg) and msg not in self.commit or self.Attacker:
             self.commit.append(msg)
-            if len(self.prepare) >= self.getSize(self.blockchain.getPrimeNodes()):
+            if len(self.commit) >= self.getSize(self.blockchain.getPrimeNodes()):
                 #Debug Code
-                #print(f"Node {self.ID} node Handling Commit")
+                print(f"Node {self.ID} node Handling Commit")
+                print(f"length of commit =", len(self.commit))
 
                 #add message sequence
                 self.msgNumber += 1
                 msgValue = self.msgNumber
 
                 #Commit Block
-                commit = self.commitBlock(msg)
-                
-                if commit:
 
+                
+
+                valid = self.votingResult()
+
+                #Increase Trust
+                if valid == 1:
                     for node in self.nodes:
                         if node.ID == msg.data['origin']:
                             node.awardTrust(trust=1)
                             break
-                    #Remove a Node Below trust threshhold
-                    for node in self.nodes:
-                        if not node.disabled and node.trust == 0:
-                            node.disabled = True
+                    #reset commits and prepares
+                    self.prepare = []
+                    self.commit = []
+                elif valid == 2:
+                    #Waiting For Node List To populate
+                    print("Delaying commit until all nodes have processed messages")
 
-                #reset commits and prepares
-                self.prepare = []
-                self.commit = []
+                elif valid == 3:
+                    for node in self.nodes:
+                        if node.ID == msg.data['origin']:
+                            node.sanctionTrust(trust=1)
+                            break
+                    #reset commits and prepares
+                    self.prepare = []
+                    self.commit = []
+                            
+                #Remove a Node Below trust threshhold
+                for node in self.nodes:
+                    if not node.disabled and node.trust == 0:
+                        node.disabled = True
+
+                
 
                 reply = {
                     'type': 'Commit',
@@ -367,8 +407,8 @@ class Node:
                     'sender' : self.ID,
                     
                 }
-                replyMsgOBJ = Message(MessageType.Reply, self.ID, reply, self.ID)
-                self.send(msg.data['request']['sender'], replyMsgOBJ)
+                replyMsgOBJ = Message(MessageType.Reply, self.ID, reply, msg.data['origin'])
+                self.send(msg.data['origin'], replyMsgOBJ)
 
                 #self.blockchain.addBlock(tempBlock)
             else:
@@ -415,7 +455,8 @@ class Node:
             return False
         
         return True
-
+    
+    #Get Total of faulty nodes that the network can handle
     def getSize(self, nodes):
         #Find total nodes
 
@@ -427,6 +468,37 @@ class Node:
         size = 3 * faultyNodes + 1
 
         return size
+    
+    def getMajority(self, nodes):
+        networkNodeTotal = len([node for node in nodes if not node.disabled])
+        majority = (networkNodeTotal // 2 + 1)
+        print ("majority:", majority)
+        return majority
+    
+    #Voting To Increase/ Decrease Trust
+    def votingResult(self):
+        primaryCount = self.blockchain.getPrimeNodes()
+        if len(self.commit) != len(primaryCount) -1:
+            return 2
+        else:
+            commitVotes = 0
+            FalsecommitVotes = 0
+            for msg in self.commit:
+                vote = msg.data['vote']
+                if vote:
+                    commitVotes += 1
+                else:
+                    FalsecommitVotes +=1
+            if commitVotes < FalsecommitVotes:
+                return 3
+            else:
+                Block = msg.data['block']
+            
+                print ("TimBlock:", str(Block))
+            
+                self.blockchain.chain.append(Block)
+                return 1
+
 
     #check to see if msg is of type prepare
     def validPrepare(self, msg):
@@ -469,10 +541,20 @@ class Node:
             return False
     
     def awardTrust(self, trust):
-        if self.trust < 100:
+        total_trust = sum(node.trust for node in self.nodes if not node.disabled)
+        max_trust = math.floor(0.5* total_trust)
+
+        if max_trust < 4:
+            max_trust = 10
+
+        if self.trust < max_trust:
             self.trust += trust
         else:
-            self.trust = 100
+            self.trust = max_trust
+    
+    def sanctionTrust(self, trust):
+
+        self.trust -= trust
 
     #Attacker Functions
     def dataChangeAttack(self, targetblockID, data):
@@ -490,6 +572,8 @@ class Node:
             self.appData.bftMessages.append(message)
         if smplMsg is not None:
             self.appData.simplifiedbftMessages.append(smplMsg)
+    
+
 
 
 #------------------------------------------------------------------------
@@ -576,7 +660,7 @@ class Blockchain:
         sortedNodes = sorted(filter(lambda node: not node.disabled, self.nodes), key=lambda node: node.trust, reverse=True)
 
         #Get 10% of nodes with highest trust
-        bestNodes = max(4, int(len(self.nodes) * 0.1))
+        bestNodes = max(4, int(len(sortedNodes) * 0.1))
         return sortedNodes[:bestNodes]
 
     def backupPrimeNode(self):
@@ -643,7 +727,7 @@ class Blockchain:
     #Check if block has been mined
     def mineCheck(self, msg):
         content = msg.data['data']
-        print(f"data contents: {msg.data['request']}")
+        #print(f"data contents: {msg.data['request']}")
         
         data = json.loads(msg.data['request'])
         Addedblock = Block(**data)
@@ -948,7 +1032,7 @@ class PropertiesDialog(QMainWindow, Ui_Properties):
 
     def update(self):
         self.updateTimer.timeout.connect(self.updateVariables)
-        self.updateTimer.start(3000)
+        self.updateTimer.start(1000)
 
     def updateVariables(self):
         selectedNode = self.my_app_instance.b.getNodeByID(self.NodeID)
@@ -990,7 +1074,7 @@ class LineDrawer(QWidget):
         painter.setPen(pen)
 
         sortedList = [pos for pos in self.nodePositions if pos is not None]
-        
+
         if len(sortedList) >= 2:
             for i in range(len(sortedList)):
                 for j in range(i + 1, len(sortedList)):
@@ -1027,8 +1111,9 @@ class SimulationThread(QThread):
         self.signalhandler = signalhandler
 
     def run(self):
+        print("Thread Started")
         self.env.process(self.performAddData(self.env))
-        self.env.run(until=self.env.now + 5000)
+        self.env.run(until=self.env.now + 6000)
     
         
 #----------------------------------------
@@ -1128,6 +1213,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
         #self.
         self.autoAddData = QTimer()
         self.signalhandler = SignalHandler(self)
+        self.autoAddData.setInterval(7000)
         self.autoAddData.timeout.connect(self.automaticAdditionOfData)
         self.updateUI.connect(self.onUpdateUI)
 
@@ -1157,7 +1243,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
     def applySettings(self):
         if self.chk_PauseMining.isChecked():
             self.simulation_paused = False
-            self.autoAddData.start(5000)
+            self.autoAddData.start()
         else:
             self.simulation_paused = True
             self.autoAddData.stop()
@@ -1192,7 +1278,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
     #---------------STOPWATCH-----------------
     def initStopwatch(self):
         self.timer.timeout.connect(self.updateStopwatch)
-        self.timer.start(1000)
+        self.timer.start(1)
 
     def updateStopwatch(self):
         self.stopwatch = self.stopwatch.addSecs(1)
@@ -1588,16 +1674,19 @@ class MyApp(QMainWindow, Ui_scr_Main):
             node = self.b.getNodeByID(newNode.ID)
 
 
-            icon = "Assets/Images/Icons/Node_Icon_Valid.png"
+            icon = "Assets/Images/Icons/Node_Disabled.png"
             #print(f"Node: {node.ID}, undergoing change")
-            if node.Attacker:
-                if node in self.b.getPrimeNodes():
+            if not node.disabled:
+                if node.Attacker:
+                    if node in self.b.getPrimeNodes():
                         icon = "Assets/Images/Icons/Node_Icon_Primary_Attacker.png"
-                else:
+                    else:
                         icon = "Assets/Images/Icons/Node_Icon__Attacker.png"
-            else:
-                if node in self.b.getPrimeNodes():
+                else:
+                    if node in self.b.getPrimeNodes():
                         icon = "Assets/Images/Icons/Node_Icon_Primary.png"
+                    else:
+                        icon = "Assets/Images/Icons/Node_Icon_Valid.png"
                 
             if newNode != self.selected_icon:
                 newNode.setPixmap(QtGui.QPixmap(icon))
@@ -1653,15 +1742,20 @@ class MyApp(QMainWindow, Ui_scr_Main):
     #Automated Network Functions
     #----------------------------------------
     def automaticAdditionOfData(self):
+        
         if self.b is not None and self.b.nodes is not None:
                 if self.chk_PauseMining.isChecked():
                     self.simulation_Thread = SimulationThread(self.env, self.performAddData, self.signalhandler)
                     self.simulation_Thread.start()
+                    print("automaticAdditionOfData Called")
+                    
                 
         else:
-                self.errorPromptForAutoMine()
+            self.errorPromptForAutoMine()
+            #self.simulationRunning = True
     
     def performAddData(self, env):
+        print("Perform AddData Called")
         while True:    
             sortedList = [node for node in self.b.nodes if node is not None and not node.disabled]
             if sortedList is not None and len(sortedList) > 0:
