@@ -4,10 +4,11 @@ import hashlib
 import math
 import random
 import sys
+import typing
 from PyQt6 import QtWidgets, sip
 from PyQt6 import QtCore
 from PyQt6 import QtGui
-from PyQt6.QtWidgets import QApplication, QDialog, QGraphicsScene, QGraphicsView, QTableWidget, QTableWidgetItem, QVBoxLayout , QWidget , QLabel
+from PyQt6.QtWidgets import QApplication, QDialog, QFileDialog, QGraphicsScene, QGraphicsView, QTableWidget, QTableWidgetItem, QVBoxLayout , QWidget , QLabel
 from PyQt6.QtCore import QCoreApplication, QPoint, QSize, QTime, QTimer, Qt, QMimeData, pyqtSignal, QThread, pyqtSlot
 from UI import Ui_scr_Main
 from Properites import Ui_Properties
@@ -17,6 +18,7 @@ import json
 import copy
 from datetime import datetime
 import simpy
+from StartUp import Ui_MainWindow2
 
 
 
@@ -24,7 +26,20 @@ class ApplicationData:
     def __init__(self):
         self.bftMessages = []
         self.simplifiedbftMessages =[]
+        self.convertBftMessages = []
         self.voteMessages = []
+        self.logMessages = []
+    def convertToJson(self):
+        appData = {
+            "simplifiedbftMessages": self.simplifiedbftMessages,
+            "logMessages": self.logMessages,
+        }
+
+        
+    
+        return appData
+    
+
         
 
 
@@ -69,7 +84,16 @@ class Node:
     def addBlockToNode(self, data):
         self.addBlock(data, self.Attacker)
 
+    def toDict(self):
+        return {
+            'ID': self.ID,
+            'ntwTimeAdded': "0",
+            'Attacker': self.Attacker,
+            'trust': self.trust,
+            'name': self.name,
+            'disabled': self.disabled,
 
+        }
 
     #Select Multiple validators
     def selectPrimeNodes(self):
@@ -153,7 +177,7 @@ class Node:
         node = target
         if self.nodePresent(target):
             #Debug Code
-            print(f"Node {self.ID} sending msg to node {target}")
+            #print(f"Node {self.ID} sending msg to node {target}")
 
 
             self.nodes[target].recieve(message)
@@ -172,7 +196,8 @@ class Node:
                 self.send(target=node.ID, message=msg)
                 #simpleMsg = f"Node {self.ID} sending msg to node {node.ID}"
                 #self.addMessageToApplicationData(msg, simpleMsg)
-
+        log = f"ID: {self.ID} - Broadcasting To All Nodes"
+        self.addMsgToLog(log)
                 
 
 
@@ -218,7 +243,7 @@ class Node:
         msgValue = None
         request = msg.data
         #Debug Code
-        print(f"Node {self.ID} node Handling Request")
+        #print(f"Node {self.ID} node Handling Request")
         if self.primeNode():
             
 
@@ -249,7 +274,7 @@ class Node:
 
 
         #Debug code
-        print(f"Node {self.ID} node Handling PrePrepare")
+        #print(f"Node {self.ID} node Handling PrePrepare")
         vote = self.validPrePrepare(msg)
         blockData = json.loads(msg.data['request'])
         tempBlock = Block(**blockData)
@@ -322,7 +347,7 @@ class Node:
             vote = self.validPrepare(msg) 
 
             #Debug Code
-            print(f"Node {self.ID} node Handling Prepare")
+            #print(f"Node {self.ID} node Handling Prepare")
 
             #Check for minimum required nodes
             if len(self.prepare) >= self.getSize(self.blockchain.getPrimeNodes()):
@@ -356,8 +381,8 @@ class Node:
             self.commit.append(msg)
             if len(self.commit) >= self.getSize(self.blockchain.getPrimeNodes()):
                 #Debug Code
-                print(f"Node {self.ID} node Handling Commit")
-                print(f"length of commit =", len(self.commit))
+                #print(f"Node {self.ID} node Handling Commit")
+                #print(f"length of commit =", len(self.commit))
 
                 #add message sequence
                 self.msgNumber += 1
@@ -374,19 +399,31 @@ class Node:
                     for node in self.nodes:
                         if node.ID == msg.data['origin']:
                             node.awardTrust(trust=1)
+                            log = f"ID: {node.ID}, Name {node.name} - Increased Trust, Proof Of Work Is Valid"
+                            self.addMsgToLog(log)
                             break
                     #reset commits and prepares
                     self.prepare = []
                     self.commit = []
                 elif valid == 2:
                     #Waiting For Node List To populate
-                    print("Delaying commit until all nodes have processed messages")
+                    #print("Delaying commit until all nodes have processed messages")
 
+                    log = f"ID: {self.ID} - Delaying Commit, Waiting for all nodes to reply"
+                    self.addMsgToLog(log)
+                    
                 elif valid == 3:
                     for node in self.nodes:
                         if node.ID == msg.data['origin']:
                             node.sanctionTrust(trust=1)
+                            log = f"ID: {node.ID}, Name {node.name} - Lowered Trust, Mallicious Activity Voted On By Nodes"
+                            self.addMsgToLog(log)
                             break
+                        #reset commits and prepares
+                        self.prepare = []
+                        self.commit = []
+                elif valid == 4:
+
                     #reset commits and prepares
                     self.prepare = []
                     self.commit = []
@@ -395,6 +432,8 @@ class Node:
                 for node in self.nodes:
                     if not node.disabled and node.trust == 0:
                         node.disabled = True
+                        log = f"ID: {node.ID}, Name: {node.name} - Disconnected From Network, Trust is too low"
+                        self.addMsgToLog(log)
 
                 
 
@@ -472,7 +511,8 @@ class Node:
     def getMajority(self, nodes):
         networkNodeTotal = len([node for node in nodes if not node.disabled])
         majority = (networkNodeTotal // 2 + 1)
-        print ("majority:", majority)
+        #Debug Code
+        #print ("majority:", majority)
         return majority
     
     #Voting To Increase/ Decrease Trust
@@ -494,10 +534,13 @@ class Node:
             else:
                 Block = msg.data['block']
             
-                print ("TimBlock:", str(Block))
-            
-                self.blockchain.chain.append(Block)
-                return 1
+                #print ("Block To Add:", str(Block))
+                data = any(block.data == Block.data for block in self.blockchain.chain)
+                if not data:
+                    self.blockchain.chain.append(Block)
+                    return 1
+                else:
+                    return 4
 
 
     #check to see if msg is of type prepare
@@ -572,6 +615,8 @@ class Node:
             self.appData.bftMessages.append(message)
         if smplMsg is not None:
             self.appData.simplifiedbftMessages.append(smplMsg)
+    def addMsgToLog(self,Log):
+        self.appData.logMessages.append(Log)
     
 
 
@@ -593,6 +638,17 @@ class Message:
         self.data = data
         self.datetime = datetime.now()
         self.origin = origin
+    
+    def toDict(self):
+
+
+        return {
+            "type": self.type.value ,
+            "sender": self.sender,
+            "data": self.data,
+            "datetime": "0",
+            "origin": self.origin,
+        }
         
 #-----------------------------------
 #-----------------------------------
@@ -613,6 +669,14 @@ class Block:
     def getStringVal(self):
         return self.id, self.nonce, self.data, self.hashcode, self.previousHash
     
+    def toDict(self):
+        return {
+            'nonce': self.nonce,
+            'data': self.data,
+            'hashcode': self.hashcode,
+            'previousHash': self.previousHash,
+            'timeAdded': self.timeAdded,
+        }
 
 
 #------------------------------------------------------------------------
@@ -629,7 +693,28 @@ class Blockchain:
 
     def __len__(self):
         return len(self.chain)
+    
+    def save_to_file(self, filepath):
+        data = self.toDict()
+        with open(filepath, 'w') as file:
+            json.dump(data, file, indent=4)
 
+    def toDict(self):
+        blockData = [block.toDict() for block in self.chain]
+        NodeData = [node.toDict() for node in self.nodes]
+        appdata = self.nodes[0].appData.convertToJson()
+
+        
+        Chain = {
+            'chain': "blockData",
+            'prefix': self.prefix,
+            'nodes': "NodeData",
+            'primeNode': self.primeNode,
+            'view': self.view,
+        }
+
+        
+        return {'ChainData':Chain, 'NodeData': NodeData, 'BlockData':blockData, 'AppData': appdata}
     
 #
         
@@ -707,7 +792,7 @@ class Blockchain:
         #        return node
 
     #Syncronising Nodes with the established blockchain
-    def addNode(self, appData, ntwTimeAdded, Attacker, trust=0, name=None):
+    def addNode(self, appData, ntwTimeAdded, Attacker, trust=0, name=None, disabled=None):
         nodeID = len(self.nodes)
         if nodeID in self.nodes:
             nodeID += 2
@@ -715,7 +800,7 @@ class Blockchain:
             
         
         prime = False
-        node = Node(appData, nodeID, prime, self.nodes, ntwTimeAdded, Attacker, trust, blockchain=self, name=name)
+        node = Node(appData, nodeID, prime, self.nodes, ntwTimeAdded, Attacker, trust, blockchain=self, name=name, disabled=disabled)
         
         self.nodes.append(node)
         #Debug Code
@@ -767,7 +852,11 @@ class Blockchain:
                     if (block.id<len(self.chain)-1):
                         self.chain[block.id+1].prev = myHash
 
-
+    def addloadedBlock(self, data):
+        id = len(self.chain)
+        nonce = 0
+        block = Block(id, nonce, data["data"], data["hashcode"], data["previousHash"])
+        self.chain.append(block)
     
     def addNewBlock(self, data, Attacker):
         if len (self.chain)==0:
@@ -820,6 +909,8 @@ class Blockchain:
         for id in range(len(self.chain)):
             chainDict[id]=self.chain[id].getStringVal()
         #print (chainDict)
+
+    
 
     def mineChain(chain):
         #Check If the chain has been comprimised
@@ -940,7 +1031,11 @@ class PropertiesDialog(QMainWindow, Ui_Properties):
         headers = ["Time","Type", "Sender ID", "Origin","Data"]
         self.tbl_prop_msgs.setHorizontalHeaderLabels(headers)
 
-
+    #Application Actions
+    def actionHome(self):
+        self.home = StartupWindow()
+        self.home.show()
+        self.close()
 
         
     
@@ -1101,7 +1196,8 @@ class SignalHandler(QtCore.QObject):
             self.app.updateSimpleMessagesTable()
             self.app.updateTrustValuesInList()   
             self.app.updateAllNodeIcons()
-            self.app.lst_Overview.addItem(f"Time: {ui_data['Time']} - Network Time: {ui_data['ntwTime']} - Block {ui_data['Block_ID']} Added To the Network")
+            self.app.updateListOverview()
+            
     
 class SimulationThread(QThread):
     def __init__ (self, env, performAddData, signalhandler):
@@ -1111,9 +1207,10 @@ class SimulationThread(QThread):
         self.signalhandler = signalhandler
 
     def run(self):
+        #Debug Code
         print("Thread Started")
         self.env.process(self.performAddData(self.env))
-        self.env.run(until=self.env.now + 6000)
+        self.env.run(until=self.env.now + 7000)
     
         
 #----------------------------------------
@@ -1126,21 +1223,34 @@ class MyApp(QMainWindow, Ui_scr_Main):
     worker = None
     simulation_paused_signal = pyqtSignal(bool)
     updateUI = pyqtSignal(dict)
-    
+    closed = pyqtSignal()
 
     
    
 
     
-    def __init__(self):
+    def __init__(self, LoadedData=None):
         super(MyApp, self).__init__()
         self.setupUi(self)
+        
+
+        self.loadedData = LoadedData
+        
         
 
         #Set Simulation
         self.simulation_paused = False
 
-        
+        #Save Functions
+        self.actionSave.triggered.connect(self.saveBlockchain)
+
+        #Go Home
+        self.actionHome.triggered.connect(self.goHome)
+
+        #Load Functions
+
+        #Reset Functions
+        self.actionReset.triggered.connect(self.reset)
 
         
 
@@ -1154,7 +1264,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
         #Timer
         self.timer = QTimer()
-        self.stopwatch = QTime(0,0)
+        self.stopwatch = QTime(0,0,0)
         self.initStopwatch()
         self.env = simpy.Environment()
         
@@ -1163,8 +1273,8 @@ class MyApp(QMainWindow, Ui_scr_Main):
         self.propertiesWindow = None
 
         #Thread for automated mining process
-        self.validDataWorkerTimer = QTimer()
-        self.validDataWorkerTimer.timeout.connect(self.automaticAdditionOfData)
+        #self.validDataWorkerTimer = QTimer()
+        #self.validDataWorkerTimer.timeout.connect(self.automaticAdditionOfData)
         
         #Draw Lines Between Nodes
         self.lineDrawer = LineDrawer(self.fr_VisualArea)
@@ -1187,7 +1297,6 @@ class MyApp(QMainWindow, Ui_scr_Main):
         #Obtain App Data
         self.appData = ApplicationData()
 
-
         #Drag and Drop peramiters for area
         self.fr_VisualArea.setAcceptDrops(True)
         self.fr_VisualArea.dragEnterEvent = self.dragEnterEvent
@@ -1209,13 +1318,14 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
         self.btn_AddNode.setObjectName("btn_AddNode")
 
-        #Auto Add Data
-        #self.
+        #Auto Add Data (simulation)
         self.autoAddData = QTimer()
         self.signalhandler = SignalHandler(self)
         self.autoAddData.setInterval(7000)
         self.autoAddData.timeout.connect(self.automaticAdditionOfData)
         self.updateUI.connect(self.onUpdateUI)
+
+        self.simulationStop = False
 
         
         self.signalhandler.updateUI.connect(self.signalhandler.onUpdateUI)
@@ -1232,21 +1342,50 @@ class MyApp(QMainWindow, Ui_scr_Main):
     #Changing Block Data
         self.btn_ChangeBlock.clicked.connect(self.changeBlock)
 
+        if self.loadedData is not None:
+            self.setLoadedData()
+
 
     #----------------------------------------
     #Ui Functions
     #----------------------------------------
 
+    def reset(self):
+        newappinstance = MyApp(LoadedData=None)
+        newappinstance.show()
+        self.close()
+
+    def goHome(self):
+        self.home = StartupWindow()
+        self.home.show()
+        self.close()
+
+
+    def closeEvent(self, event):
+        self.closed.emit()
+        super().closeEvent(event)
+    
+    #def loadData(self, filePath):
+    #    with open(filePath, 'r') as file:
+    #        loadedData = json.load(file)
+
+        #self.block
     
 
     #--------------APPLY SETTINGS-------------
     def applySettings(self):
-        if self.chk_PauseMining.isChecked():
-            self.simulation_paused = False
+        if self.chk_PauseMining.isChecked() and self.simulation_paused == False:
+            self.simulation_paused = True
+            self.simulationStop = False
             self.autoAddData.start()
+            print("StartingThread")
+        elif self.simulation_paused == False:
+            print("Running")
         else:
             self.simulation_paused = True
+            self.simulationStop = True
             self.autoAddData.stop()
+            print("Simulation stopped")
 
     def onUpdateUI(self, ui_data):
         if ui_data['Blockchain_Updated']:
@@ -1255,21 +1394,67 @@ class MyApp(QMainWindow, Ui_scr_Main):
             self.updateSimpleMessagesTable()
             self.updateTrustValuesInList()   
             self.updateAllNodeIcons()
-            self.lst_Overview.addItem(f"Time: {ui_data['Time']} - Network Time: {ui_data['ntwTime']} - Block {ui_data['Block_ID']} Added To the Network")
+            self.updateListOverview()
+            
     
-
-            
-            
-            
-
-
-            
-            
-
-
     def onPauseSimulation(self, paused):
         self.simulation_paused = paused
+    
+    #---------------SAVE-----------------
+    def saveBlockchain(self):
+        options = QFileDialog().options()
+        filepath, _ = QFileDialog.getSaveFileName(self, "Save As", "", "JSON Files (*.json);;All Files (*)", options=options)
+
+        if filepath:
+            self.b.save_to_file(filepath)
+
+
+    def setLoadedData(self):
+        nodeData = self.loadedData.get("NodeData", [])
+        blockData = self.loadedData.get("BlockData", [])
+        appdata = self.loadedData.get("AppData", [])
+
+        if self.b is None:
+            self.b = Blockchain()
         
+        for node in nodeData:
+            Time = datetime.now().strftime("%H:%M:%S")
+            addedNode = self.b.addNode(appData=self.appData, ntwTimeAdded=node["ntwTimeAdded"], trust=node["trust"], name=node["name"], Attacker=node["Attacker"], disabled= node["disabled"])
+            ntwTime = self.stopwatch.toString("hh:mm:ss")
+            self.lst_Overview.addItem(f"Operations at: NetworkTime - {ntwTime}, Time - {Time}")
+            self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time:  {ntwTime} - Name: {node} - ID: {addedNode.ID} - trust value: {addedNode.trust} - ACTION: added to the network")
+            self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time:  {ntwTime} - Name: {node} - ID:{addedNode.ID} - ACTION: Synced To The Network")
+            self.listWidget.addItem(f"ID: {str(addedNode.ID)}, Node: {addedNode.name}, trust: {addedNode.trust}")
+        
+            #Add to UI
+            newNode = DragNodeIcon(parent=self.fr_VisualArea, blockchain=self.b)
+            newNode.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Valid.png"))
+
+            newNode.ID = addedNode.ID
+
+            #Update List
+            nodelist = self.listWidget.item(self.listWidget.count() - 1)
+            self.nodeIconMappings[newNode] = nodelist
+
+            #Add Label
+            newNode.setToolTip(f"ID: {addedNode.ID}, Node: {addedNode.name}, trust: {addedNode.trust}")
+            
+            #For Drag And Drop
+            newNode.myAppInstance = self
+            newNode.show()
+            
+            self.lineDrawer.addNodePositions(newNode.pos())
+            #print(f"Node added at index: {self.listWidget.count() - 1}, position: {newNode.pos()}")
+        
+        if self.b is not None:
+            for block in blockData:
+                self.b.addloadedBlock(block)
+        
+        for message in appdata.get("appdata", []):
+            self.appData.simplifiedbftMessages.append(message)
+        
+        for log in appdata.get("logMessages",[]):
+            self.appData.logMessages.append(log)
 
 
 
@@ -1278,7 +1463,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
     #---------------STOPWATCH-----------------
     def initStopwatch(self):
         self.timer.timeout.connect(self.updateStopwatch)
-        self.timer.start(1)
+        self.timer.start(1000)
 
     def updateStopwatch(self):
         self.stopwatch = self.stopwatch.addSecs(1)
@@ -1327,6 +1512,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
             self.updateSimpleMessagesTable()
             self.updateTrustValuesInList()   
             self.updateAllNodeIcons()
+            self.updateListOverview()
         else:
             Valid = False
             prompt = QDialog()
@@ -1383,15 +1569,17 @@ class MyApp(QMainWindow, Ui_scr_Main):
             if node:
                 ntwTime = self.stopwatch.toString("hh:mm:ss")
                 Time = datetime.now().strftime("%H:%M:%S")
+                self.lst_Overview.addItem(f"Operations at: NetworkTime - {ntwTime}, Time - {Time}")
                 node.addBlock(Data)
                 
                 
-                self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time: {ntwTime} ID: {ID}, Block added to Node: {node.name}, with data of {Data}")
+                
                 self.updateBlockChainTable()
                 self.updateMessagesTable()
                 self.updateSimpleMessagesTable()
                 self.updateTrustValuesInList()   
                 self.updateAllNodeIcons()
+                self.updateListOverview()
 
             #Error if node dosnt exist
             else:
@@ -1472,6 +1660,11 @@ class MyApp(QMainWindow, Ui_scr_Main):
         else:
             self.blockchainModel.clear()
 
+    def updateListOverview(self):
+        for message in self.appData.logMessages:
+            if message not in [self.lst_Overview.item(i).text() for i in range(self.lst_Overview.count())]:
+                self.lst_Overview.addItem(message)
+
     #----------------------------------------
     #Messages Functions
     #----------------------------------------
@@ -1524,10 +1717,11 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
     
     def addNewNodeHelper(self, node, Attacker, Trust):  
-            ntwTime = self.stopwatch.toString("hh:mm:ss")
-            addedNode = self.b.addNode(appData=self.appData, ntwTimeAdded=ntwTime, trust=Trust, name=node, Attacker=Attacker)
+            
             Time = datetime.now().strftime("%H:%M:%S")
             ntwTime = self.stopwatch.toString("hh:mm:ss")
+            addedNode = self.b.addNode(appData=self.appData, ntwTimeAdded=ntwTime, trust=Trust, name=node, Attacker=Attacker)
+            self.lst_Overview.addItem(f"Operations at: NetworkTime - {ntwTime}, Time - {Time}")
             self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time:  {ntwTime} - Name: {node} - ID: {addedNode.ID} - trust value: {Trust} - ACTION: added to the network")
             self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time:  {ntwTime} - Name: {node} - ID:{addedNode.ID} - ACTION: Synced To The Network")
             self.listWidget.addItem(f"ID: {str(addedNode.ID)}, Node: {node}, trust: {Trust}")
@@ -1747,7 +1941,8 @@ class MyApp(QMainWindow, Ui_scr_Main):
                 if self.chk_PauseMining.isChecked():
                     self.simulation_Thread = SimulationThread(self.env, self.performAddData, self.signalhandler)
                     self.simulation_Thread.start()
-                    print("automaticAdditionOfData Called")
+                    #Debug Code
+                    #print("automaticAdditionOfData Called")
                     
                 
         else:
@@ -1755,42 +1950,47 @@ class MyApp(QMainWindow, Ui_scr_Main):
             #self.simulationRunning = True
     
     def performAddData(self, env):
-        print("Perform AddData Called")
-        while True:    
+        #Debug Code
+        #print("Perform AddData Called")
+
+        if not self.simulationStop:    
             sortedList = [node for node in self.b.nodes if node is not None and not node.disabled]
             if sortedList is not None and len(sortedList) > 0:
+
+                print("Start Add Data")
                 
                 #Data To Add To Overview
                 ntwTime = self.stopwatch.toString("hh:mm:ss")
                 Time = datetime.now().strftime("%H:%M:%S")
+                self.lst_Overview.addItem(f"Operations at: NetworkTime - {ntwTime}, Time - {Time}")
 
                 addblock = False
 
                 #Select Node to add data
                 randomNode = random.choice(sortedList)
                 if randomNode.Attacker:
-                    data = ["Mallicious-Data-1", "Mallicious-Data-2", "Mallicious-Data-3", "Mallicious-Data-4", "Mallicious-Data-5", "Mallicious-Data-6", "Mallicious-Data-7", "Mallicious-Data-8", "Mallicious-Data-9", "Mallicious-Data-10"]
-                    randomData = random.choice(data)
-
+                    integer = len(self.b.chain) + 1
+                    randomData = f"Mallicious-Data-{integer}"
+                    
                     if randomNode.addBlock(randomData):
                         randomNode.addBlock(randomData)
                         blockID = len(self.b.chain)
                         addblock = True
-                    print("attacker selected")
+
+                    #Debug Code
+                    #print("attacker selected")
                     #randomNode.dataChangeAttack(data)
                 else:
 
-                    #Data 
-                    data = ["Data-Entry-1", "Data-Entry-2", "Data-Entry-3", "Data-Entry-4", "Data-Entry-5", "Data-Entry-6", "Data-Entry-7", "Data-Entry-8", "Data-Entry-9", "Data-Entry-10"]
+                    integer = len(self.b.chain) + 1
+                    randomData = f"Data-Entry-{integer}"
 
-                    #Select Random Data
-                    randomData = random.choice(data)
-                    
                     #Add Block 
                     if randomNode.addBlock(randomData):
                         randomNode.addBlock(randomData)
                         blockID = len(self.b.chain)
                         addblock = True
+
 
                     
                 ui_data = {
@@ -1803,9 +2003,13 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
                 #Simulate Time to add block
             yield env.timeout(5000)
+            print("cycle Finished")
+            
+            print("End Add Data")
 
-            if self.simulation_paused:
-                break
+            #Debug Code
+            #if not self.simulation_paused:
+                #print("pause")
 
                 
                 
@@ -1917,9 +2121,44 @@ class DragNodeIcon(QtWidgets.QLabel):
 
         drag.exec(Qt.DropAction.MoveAction)
 
+class StartupWindow(QMainWindow, Ui_MainWindow2):
+
+    def __init__(self, parent=None):
+        super(StartupWindow, self).__init__(parent)
+        self.setupUi(self)
+        self.btn_StartNew.clicked.connect(self.startNew)
+        self.btn_LoadData.clicked.connect(self.loadFrom)
+
+    #Open New
+    def startNew(self):
+        self.newWindow = MyApp(LoadedData=None)
+        self.newWindow.show()
+        self.newWindow.closed.connect(self.reopenStartupWindow)
+        self.close()
+
+    #Load From
+    def loadFrom(self):
+        file_path, _ =QFileDialog.getOpenFileName(self, "Open File", "", "JSON Files (*json);;All Files (*)")
+        if file_path:
+            with open(file_path, 'r') as file:
+                self.loadedData = json.load(file)
+        self.newWindow = MyApp(LoadedData=self.loadedData)
+        self.newWindow.show()
+        self.newWindow.closed.connect(self.reopenStartupWindow)
+        self.close()
+
+    def reopenStartupWindow(self):
+        self.show()
+        self.newWindow.show()
+        self.newWindow.closed.connect(self.reopenStartupWindow)
+        self.close()
+
+    
+
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = MyApp()
+    window = StartupWindow()
     window.show()
     sys.exit(app.exec())
