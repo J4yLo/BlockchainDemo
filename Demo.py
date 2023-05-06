@@ -1171,7 +1171,7 @@ class LineDrawer(QWidget):
 
         sortedList = [pos for pos in self.nodePositions if pos is not None]
 
-        if len(sortedList) >= 2:
+        if len(sortedList) >= 2 and len(sortedList) < 30:
             for i in range(len(sortedList)):
                 for j in range(i + 1, len(sortedList)):
                             painter.drawLine(sortedList[i], sortedList[j])
@@ -1370,6 +1370,9 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
         
         self.signalhandler.updateUI.connect(self.signalhandler.onUpdateUI)
+
+        #Set Starting Index of tbOverview
+        self.tb_Overview.setCurrentIndex(6)
 
     
     #ADD NODE
