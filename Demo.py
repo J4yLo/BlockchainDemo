@@ -1436,14 +1436,17 @@ class MyApp(QMainWindow, Ui_scr_Main):
             self.tb_Overview.setTabEnabled(3, False)
             self.tb_Overview.setTabEnabled(4, False)
             self.menuBar().setEnabled(False)
+            self.mine_status.setText("Mining")
             
         else:
-            self.simulationStop = True
-            #self.autoAddData.stop()
-            #print("Simulation stopped")
-            self.tb_Overview.setTabEnabled(3, True)
-            self.tb_Overview.setTabEnabled(4, True)
-            self.menuBar().setEnabled(True)
+                self.mine_status.setText("Not Mining")
+
+                self.simulationStop = True
+                #self.autoAddData.stop()
+                #print("Simulation stopped")
+                self.tb_Overview.setTabEnabled(3, True)
+                self.tb_Overview.setTabEnabled(4, True)
+                self.menuBar().setEnabled(True)
 
     def onUpdateUI(self, ui_data):
         if ui_data['Blockchain_Updated']:
