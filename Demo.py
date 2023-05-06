@@ -1249,7 +1249,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
         self.actionSave.triggered.connect(self.saveBlockchain)
 
         #Go Home
-        self.actionHome.triggered.connect(self.goHome)
+        self.actionHome_2.triggered.connect(self.goHome)
 
         #Load Functions
 
