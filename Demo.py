@@ -4,6 +4,7 @@ import hashlib
 import math
 import random
 import sys
+import time
 import typing
 from PyQt6 import QtWidgets, sip
 from PyQt6 import QtCore
@@ -1127,7 +1128,7 @@ class PropertiesDialog(QMainWindow, Ui_Properties):
 
     def update(self):
         self.updateTimer.timeout.connect(self.updateVariables)
-        self.updateTimer.start(1000)
+        self.updateTimer.start(5000)
 
     def updateVariables(self):
         selectedNode = self.my_app_instance.b.getNodeByID(self.NodeID)
@@ -1187,6 +1188,7 @@ class SignalHandler(QtCore.QObject):
     def __init__(self, app):
         super().__init__()
         self.app = app
+        self.app.envProcessing = False
 
     @pyqtSlot(dict)
     def onUpdateUI(self, ui_data):
@@ -1200,18 +1202,46 @@ class SignalHandler(QtCore.QObject):
             
     
 class SimulationThread(QThread):
-    def __init__ (self, env, performAddData, signalhandler):
+    def __init__ (self, env, performAddData, signalhandler, app):
         super().__init__()
-        self.env = env
+        self.app = app
         self.performAddData = performAddData
         self.signalhandler = signalhandler
+        self.env = env
+        self.should_Continue = True
+        self.timeElapsed = 0
+        self.maxTime = 7000
+        self.simTime = 0
 
 
     def run(self):
         #Debug Code
         print("Thread Started")
-        self.env.process(self.performAddData(self.env))
-        self.env.run(until=self.env.now + 7000)
+        self.success = False
+        while self.should_Continue and self.timeElapsed < self.maxTime and not self.app.simulationStop:
+            if self.app.envProcessing is False:
+                self.app.envProcessing = True
+                self.success = False
+                self.env.process(self.performAddData(self.env, self.TimeCheck))
+                self.env.run(until=self.env.now + 7000)
+                self.simTime += self.timeElapsed
+                time.sleep(7)
+                self.app.envProcessing = False
+                #print("Thread Finished")
+                if self.success:
+                    self.simTime = 0
+                #print(f"Time Elapsed: {self.timeElapsed}, Env Time Elapsed: {self.simTime}")
+                #print (f"env statues: {self.success}")
+            else:
+                #print("delaying Cycle Until app Finishes processing Previous Data")
+                time.sleep(7)
+
+    def stop(self):
+        self.should_Continue = False
+
+    def TimeCheck(self, success, Time):
+        self.simTime = Time
+        self.success = success
 #
 
         
@@ -1244,6 +1274,9 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
         #Set Simulation
         self.simulation_paused = False
+        self.envProcessing = False
+        self.simulation_Thread = None
+        
 
         #Save Functions
         self.actionSave.triggered.connect(self.saveBlockchain)
@@ -1323,10 +1356,10 @@ class MyApp(QMainWindow, Ui_scr_Main):
         self.btn_AddNode.setObjectName("btn_AddNode")
 
         #Auto Add Data (simulation)
-        self.autoAddData = QTimer()
+        #self.autoAddData = QTimer()
         self.signalhandler = SignalHandler(self)
-        self.autoAddData.setInterval(7000)
-        self.autoAddData.timeout.connect(self.automaticAdditionOfData)
+        #self.autoAddData.setInterval(7000)
+        #self.autoAddData.timeout.connect(self.automaticAdditionOfData)
         self.updateUI.connect(self.onUpdateUI)
 
         self.simulationStop = False
@@ -1348,6 +1381,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
         if self.loadedData is not None:
             self.setLoadedData()
+            self.b.mineChain()
 
 
     #----------------------------------------
@@ -1379,16 +1413,13 @@ class MyApp(QMainWindow, Ui_scr_Main):
     #--------------APPLY SETTINGS-------------
     def applySettings(self):
         if self.chk_PauseMining.isChecked() and self.simulation_paused == False:
-            self.simulation_paused = True
             self.simulationStop = False
-            self.autoAddData.start()
-            print("StartingThread")
-        elif self.simulation_paused == False:
-            print("Running")
+            #self.autoAddData.start()
+            self.automaticAdditionOfData()
+            
         else:
-            self.simulation_paused = True
             self.simulationStop = True
-            self.autoAddData.stop()
+            #self.autoAddData.stop()
             print("Simulation stopped")
 
     def onUpdateUI(self, ui_data):
@@ -1939,25 +1970,30 @@ class MyApp(QMainWindow, Ui_scr_Main):
     #----------------------------------------
     #Automated Network Functions
     #----------------------------------------
+    #def restartTimer(self):
+        #self.autoAddData.stop()
+        #self.autoAddData.start(5000)
     def automaticAdditionOfData(self):
         
         if self.b is not None and self.b.nodes is not None:
-                if self.chk_PauseMining.isChecked():
-                    self.simulation_Thread = SimulationThread(self.env, self.performAddData, self.signalhandler)
+                if not self.envProcessing:
+                    self.simulation_Thread = SimulationThread(self.env, self.performAddData, self.signalhandler, self)
+                    #self.simulation_Thread.finished.connect(self.restartTimer)
                     self.simulation_Thread.start()
                     #Debug Code
                     #print("automaticAdditionOfData Called")
-                    
+                else:
+                    print("Waiting For Env to stop")
                 
         else:
             self.errorPromptForAutoMine()
             #self.simulationRunning = True
     
-    def performAddData(self, env):
+    def performAddData(self, env, getTime):
         #Debug Code
         #print("Perform AddData Called")
-
-        if not self.simulationStop:    
+            starttime = env.now
+         
             sortedList = [node for node in self.b.nodes if node is not None and not node.disabled]
             if sortedList is not None and len(sortedList) > 0:
 
@@ -2006,12 +2042,15 @@ class MyApp(QMainWindow, Ui_scr_Main):
                 self.signalhandler.updateUI.emit(ui_data)
 
                 #Simulate Time to add block
-            yield env.timeout(5000)
+            timeTaken = env.now - starttime
+            getTime(True, timeTaken)
+            print(f"Time reported: {timeTaken}, start: {starttime}")
+            yield env.timeout(2000)
             print("cycle Finished")
             
             print("End Add Data")
         
-
+            
             #Debug Code
             #if not self.simulation_paused:
                 #print("pause")

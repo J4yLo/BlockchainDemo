@@ -7,6 +7,7 @@ from Demo import *
 cd C:\Users\jason\Documents\UNI\3000\App\UI
 python -m PyQt6.uic.pyuic -o UI.py -x Home.ui
 python -m PyQt6.uic.pyuic -o Properites.py -x Properties.ui
+python -m PyQt6.uic.pyuic -o StartUp.py -x StartUp.ui
 -----------------------------ADD--------------------------------
 
 b = Blockchain()
