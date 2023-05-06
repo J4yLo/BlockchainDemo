@@ -1,0 +1,48 @@
+{
+    "ChainData": {
+        "chain": "blockData",
+        "prefix": "0000",
+        "nodes": "NodeData",
+        "primeNode": null,
+        "view": 0
+    },
+    "NodeData": [
+        {
+            "ID": 0,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 2,
+            "name": "Valid",
+            "disabled": null
+        },
+        {
+            "ID": 1,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 2,
+            "name": "Valid",
+            "disabled": null
+        },
+        {
+            "ID": 2,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 2,
+            "name": "Valid",
+            "disabled": null
+        },
+        {
+            "ID": 3,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 2,
+            "name": "Valid",
+            "disabled": null
+        }
+    ],
+    "BlockData": [],
+    "AppData": {
+        "simplifiedbftMessages": [],
+        "logMessages": []
+    }
+}

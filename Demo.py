@@ -1430,11 +1430,17 @@ class MyApp(QMainWindow, Ui_scr_Main):
             self.simulationStop = False
             #self.autoAddData.start()
             self.automaticAdditionOfData()
+            self.tb_Overview.setTabEnabled(3, False)
+            self.tb_Overview.setTabEnabled(4, False)
+            self.menuBar().setEnabled(False)
             
         else:
             self.simulationStop = True
             #self.autoAddData.stop()
-            print("Simulation stopped")
+            #print("Simulation stopped")
+            self.tb_Overview.setTabEnabled(3, True)
+            self.tb_Overview.setTabEnabled(4, True)
+            self.menuBar().setEnabled(True)
 
     def onUpdateUI(self, ui_data):
         if ui_data['Blockchain_Updated']:
