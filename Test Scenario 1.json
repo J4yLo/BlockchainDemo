@@ -1,0 +1,115 @@
+{
+    "ChainData": {
+        "chain": "blockData",
+        "prefix": "0000",
+        "nodes": "NodeData",
+        "primeNode": null,
+        "view": 0
+    },
+    "NodeData": [
+        {
+            "ID": 0,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "Alpha",
+            "disabled": null
+        },
+        {
+            "ID": 1,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "Beta",
+            "disabled": null
+        },
+        {
+            "ID": 2,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "Charlie",
+            "disabled": null
+        },
+        {
+            "ID": 3,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "Delta",
+            "disabled": null
+        }
+    ],
+    "BlockData": [
+        {
+            "nonce": "0",
+            "data": "Initial Data",
+            "hashcode": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+            "previousHash": "0",
+            "timeAdded": "01:14:12"
+        }
+    ],
+    "AppData": {
+        "simplifiedbftMessages": [
+            "Node 1 recieved reply: REPLY: {'type': 'Prepare', 'view': 0, 'block': <__main__.Block object at 0x000001E040A9C700>, 'sequence': 1, 'sender': 0, 'origin': 1, 'data': '1', 'chainCopy': <__main__.Blockchain object at 0x000001E040A9C2B0>, 'Vote': True} successful commit!",
+            "Node: 1 recieved msg from Node: 1: Status: Reply",
+            "Node 1 sending msg to node 1 : {'type': 'Commit', 'view': 0, 'Data': \"REPLY: {'type': 'Prepare', 'view': 0, 'block': <__main__.Block object at 0x000001E040A9C700>, 'sequence': 1, 'sender': 0, 'origin': 1, 'data': '1', 'chainCopy': <__main__.Blockchain object at 0x000001E040A9C2B0>, 'Vote': True} successful commit!\", 'sequence': 1, 'request': <__main__.Message object at 0x000001E040A9C610>, 'sender': 1}",
+            "Node: 1 recieved msg from Node: 0: Status: Commit",
+            "Node 0 sending msg to node 1 : {'type': 'Commit', 'view': 0, 'sequence': 1, 'request': {'type': 'Prepare', 'view': 0, 'block': <__main__.Block object at 0x000001E040A9C700>, 'sequence': 1, 'sender': 0, 'origin': 1, 'data': '1', 'chainCopy': <__main__.Blockchain object at 0x000001E040A9C2B0>, 'Vote': True}, 'sender': 0, 'Data': '1', 'block': <__main__.Block object at 0x000001E040A9C700>, 'origin': 1, 'vote': True}",
+            "Node 1 recieved reply: REPLY: {'type': 'Prepare', 'view': 0, 'block': <__main__.Block object at 0x000001E040A9C700>, 'sequence': 1, 'sender': 0, 'origin': 1, 'data': '1', 'chainCopy': <__main__.Blockchain object at 0x000001E040A9C2B0>, 'Vote': True} successful commit!",
+            "Node: 1 recieved msg from Node: 2: Status: Reply",
+            "Node 2 sending msg to node 1 : {'type': 'Commit', 'view': 0, 'Data': \"REPLY: {'type': 'Prepare', 'view': 0, 'block': <__main__.Block object at 0x000001E040A9C700>, 'sequence': 1, 'sender': 0, 'origin': 1, 'data': '1', 'chainCopy': <__main__.Blockchain object at 0x000001E040A9C2B0>, 'Vote': True} successful commit!\", 'sequence': 1, 'request': <__main__.Message object at 0x000001E040A9C610>, 'sender': 2}",
+            "Node: 2 recieved msg from Node: 0: Status: Commit",
+            "Node 0 sending msg to node 2 : {'type': 'Commit', 'view': 0, 'sequence': 1, 'request': {'type': 'Prepare', 'view': 0, 'block': <__main__.Block object at 0x000001E040A9C700>, 'sequence': 1, 'sender': 0, 'origin': 1, 'data': '1', 'chainCopy': <__main__.Blockchain object at 0x000001E040A9C2B0>, 'Vote': True}, 'sender': 0, 'Data': '1', 'block': <__main__.Block object at 0x000001E040A9C700>, 'origin': 1, 'vote': True}",
+            "Node 1 recieved reply: REPLY: {'type': 'Prepare', 'view': 0, 'block': <__main__.Block object at 0x000001E040A9C700>, 'sequence': 1, 'sender': 0, 'origin': 1, 'data': '1', 'chainCopy': <__main__.Blockchain object at 0x000001E040A9C2B0>, 'Vote': True} successful commit!",
+            "Node: 1 recieved msg from Node: 3: Status: Reply",
+            "Node 3 sending msg to node 1 : {'type': 'Commit', 'view': 0, 'Data': \"REPLY: {'type': 'Prepare', 'view': 0, 'block': <__main__.Block object at 0x000001E040A9C700>, 'sequence': 1, 'sender': 0, 'origin': 1, 'data': '1', 'chainCopy': <__main__.Blockchain object at 0x000001E040A9C2B0>, 'Vote': True} successful commit!\", 'sequence': 1, 'request': <__main__.Message object at 0x000001E040A9C610>, 'sender': 3}",
+            "Node: 3 recieved msg from Node: 0: Status: Commit",
+            "Node 0 sending msg to node 3 : {'type': 'Commit', 'view': 0, 'sequence': 1, 'request': {'type': 'Prepare', 'view': 0, 'block': <__main__.Block object at 0x000001E040A9C700>, 'sequence': 1, 'sender': 0, 'origin': 1, 'data': '1', 'chainCopy': <__main__.Blockchain object at 0x000001E040A9C2B0>, 'Vote': True}, 'sender': 0, 'Data': '1', 'block': <__main__.Block object at 0x000001E040A9C700>, 'origin': 1, 'vote': True}",
+            "Node: 0 node returned invalid PrePrepare",
+            "Node: 0 recieved msg from Node: 1: Status: PrePrepare",
+            "Node 1 sending msg to node 0 : {'view': 0, 'sequence': 1, 'request': '{\"id\": 1, \"nonce\": 93712, \"data\": \"1\", \"hashcode\": \"0000e6b89b0f08f0f7faf26f0ce60185e5043f11ed84c8881033ea0580011111\", \"previousHash\": \"6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b\", \"timeAdded\": \"01:14:12\"}', 'chainCopy': <__main__.Blockchain object at 0x000001E040A9C2B0>, 'data': '1', 'sender': 1}",
+            "Node: 0 invalid sender",
+            "Node: 0 invalid commit",
+            "Node: 0 recieved msg from Node: 2: Status: Commit",
+            "Node 2 sending msg to node 0 : {'type': 'Commit', 'view': 0, 'sequence': 2, 'request': {'type': 'Prepare', 'view': 0, 'block': <__main__.Block object at 0x000001E040A9C9D0>, 'sequence': 1, 'sender': 2, 'origin': 1, 'data': '1', 'chainCopy': <__main__.Blockchain object at 0x000001E040A9C2B0>, 'Vote': True}, 'sender': 2, 'Data': '1', 'block': <__main__.Block object at 0x000001E040A9C9D0>, 'origin': 1, 'vote': True}",
+            "Node: 1 invalid sender",
+            "Node: 1 invalid commit",
+            "Node: 1 recieved msg from Node: 2: Status: Commit",
+            "Node 2 sending msg to node 1 : {'type': 'Commit', 'view': 0, 'sequence': 2, 'request': {'type': 'Prepare', 'view': 0, 'block': <__main__.Block object at 0x000001E040A9C9D0>, 'sequence': 1, 'sender': 2, 'origin': 1, 'data': '1', 'chainCopy': <__main__.Blockchain object at 0x000001E040A9C2B0>, 'Vote': True}, 'sender': 2, 'Data': '1', 'block': <__main__.Block object at 0x000001E040A9C9D0>, 'origin': 1, 'vote': True}",
+            "Node 1 recieved reply: REPLY: {'type': 'Prepare', 'view': 0, 'block': <__main__.Block object at 0x000001E040A9C9D0>, 'sequence': 1, 'sender': 2, 'origin': 1, 'data': '1', 'chainCopy': <__main__.Blockchain object at 0x000001E040A9C2B0>, 'Vote': True} successful commit!",
+            "Node: 1 recieved msg from Node: 3: Status: Reply",
+            "Node 3 sending msg to node 1 : {'type': 'Commit', 'view': 0, 'Data': \"REPLY: {'type': 'Prepare', 'view': 0, 'block': <__main__.Block object at 0x000001E040A9C9D0>, 'sequence': 1, 'sender': 2, 'origin': 1, 'data': '1', 'chainCopy': <__main__.Blockchain object at 0x000001E040A9C2B0>, 'Vote': True} successful commit!\", 'sequence': 2, 'request': <__main__.Message object at 0x000001E040A9C7C0>, 'sender': 3}",
+            "Node: 3 recieved msg from Node: 2: Status: Commit",
+            "Node 2 sending msg to node 3 : {'type': 'Commit', 'view': 0, 'sequence': 2, 'request': {'type': 'Prepare', 'view': 0, 'block': <__main__.Block object at 0x000001E040A9C9D0>, 'sequence': 1, 'sender': 2, 'origin': 1, 'data': '1', 'chainCopy': <__main__.Blockchain object at 0x000001E040A9C2B0>, 'Vote': True}, 'sender': 2, 'Data': '1', 'block': <__main__.Block object at 0x000001E040A9C9D0>, 'origin': 1, 'vote': True}",
+            "Node: 2 node returned invalid PrePrepare",
+            "Node: 2 recieved msg from Node: 1: Status: PrePrepare",
+            "Node 1 sending msg to node 2 : {'view': 0, 'sequence': 1, 'request': '{\"id\": 1, \"nonce\": 93712, \"data\": \"1\", \"hashcode\": \"0000e6b89b0f08f0f7faf26f0ce60185e5043f11ed84c8881033ea0580011111\", \"previousHash\": \"6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b\", \"timeAdded\": \"01:14:12\"}', 'chainCopy': <__main__.Blockchain object at 0x000001E040A9C2B0>, 'data': '1', 'sender': 1}",
+            "Node: 0 invalid sequence",
+            "Node: 0 invalid commit",
+            "Node: 0 recieved msg from Node: 3: Status: Commit",
+            "Node 3 sending msg to node 0 : {'type': 'Commit', 'view': 0, 'sequence': 3, 'request': {'type': 'Prepare', 'view': 0, 'block': <__main__.Block object at 0x000001E040A9CB20>, 'sequence': 1, 'sender': 3, 'origin': 1, 'data': '1', 'chainCopy': <__main__.Blockchain object at 0x000001E040A9C2B0>, 'Vote': True}, 'sender': 3, 'Data': '1', 'block': <__main__.Block object at 0x000001E040A9CB20>, 'origin': 1, 'vote': True}",
+            "Node: 1 invalid sequence",
+            "Node: 1 invalid commit",
+            "Node: 1 recieved msg from Node: 3: Status: Commit",
+            "Node 3 sending msg to node 1 : {'type': 'Commit', 'view': 0, 'sequence': 3, 'request': {'type': 'Prepare', 'view': 0, 'block': <__main__.Block object at 0x000001E040A9CB20>, 'sequence': 1, 'sender': 3, 'origin': 1, 'data': '1', 'chainCopy': <__main__.Blockchain object at 0x000001E040A9C2B0>, 'Vote': True}, 'sender': 3, 'Data': '1', 'block': <__main__.Block object at 0x000001E040A9CB20>, 'origin': 1, 'vote': True}",
+            "Node: 2 invalid sender",
+            "Node: 2 invalid commit",
+            "Node: 2 recieved msg from Node: 3: Status: Commit",
+            "Node 3 sending msg to node 2 : {'type': 'Commit', 'view': 0, 'sequence': 3, 'request': {'type': 'Prepare', 'view': 0, 'block': <__main__.Block object at 0x000001E040A9CB20>, 'sequence': 1, 'sender': 3, 'origin': 1, 'data': '1', 'chainCopy': <__main__.Blockchain object at 0x000001E040A9C2B0>, 'Vote': True}, 'sender': 3, 'Data': '1', 'block': <__main__.Block object at 0x000001E040A9CB20>, 'origin': 1, 'vote': True}",
+            "Node: 3 node returned invalid PrePrepare",
+            "Node: 3 recieved msg from Node: 1: Status: PrePrepare",
+            "Node 1 sending msg to node 3 : {'view': 0, 'sequence': 1, 'request': '{\"id\": 1, \"nonce\": 93712, \"data\": \"1\", \"hashcode\": \"0000e6b89b0f08f0f7faf26f0ce60185e5043f11ed84c8881033ea0580011111\", \"previousHash\": \"6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b\", \"timeAdded\": \"01:14:12\"}', 'chainCopy': <__main__.Blockchain object at 0x000001E040A9C2B0>, 'data': '1', 'sender': 1}"
+        ],
+        "logMessages": [
+            "ID: 1 - Delaying Commit, Waiting for all nodes to reply",
+            "ID: 2 - Delaying Commit, Waiting for all nodes to reply",
+            "ID: 3 - Delaying Commit, Waiting for all nodes to reply",
+            "ID: 0 - Broadcasting To All Nodes",
+            "ID: 3 - Delaying Commit, Waiting for all nodes to reply",
+            "ID: 2 - Broadcasting To All Nodes",
+            "ID: 3 - Broadcasting To All Nodes",
+            "ID: 1 - Broadcasting To All Nodes"
+        ]
+    }
+}

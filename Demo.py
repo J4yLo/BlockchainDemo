@@ -863,7 +863,7 @@ class Blockchain:
             previousHash = "0"
             nonce = "0"
             myHash = hashlib.sha256(str(data).encode()).hexdigest()
-            block = Block(id, nonce, "Initial Data", myHash, previousHash)
+            block = Block("0", nonce, "Initial Data", myHash, previousHash)
             self.chain.append(block)
 
         id = len(self.chain)
@@ -1206,11 +1206,15 @@ class SimulationThread(QThread):
         self.performAddData = performAddData
         self.signalhandler = signalhandler
 
+
     def run(self):
         #Debug Code
         print("Thread Started")
         self.env.process(self.performAddData(self.env))
         self.env.run(until=self.env.now + 7000)
+#
+
+        
     
         
 #----------------------------------------
@@ -2006,6 +2010,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
             print("cycle Finished")
             
             print("End Add Data")
+        
 
             #Debug Code
             #if not self.simulation_paused:
