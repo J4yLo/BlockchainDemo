@@ -1263,7 +1263,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
    
 
     
-    def __init__(self, LoadedData=None):
+    def __init__(self, LoadedData=None, setting=0):
         super(MyApp, self).__init__()
         self.setupUi(self)
         
@@ -1282,9 +1282,13 @@ class MyApp(QMainWindow, Ui_scr_Main):
         self.actionSave.triggered.connect(self.saveBlockchain)
 
         #Go Home
-        self.actionHome_2.triggered.connect(self.goHome)
+        self.actionHome_3.triggered.connect(self.goHome)
+
+        #Import Nodes
+        self.actionNodes.triggered.connect(self.importdata)
 
         #Load Functions
+        self.actionLoad.triggered.connect(self.loadData)
 
         #Reset Functions
         self.actionReset.triggered.connect(self.reset)
@@ -1373,14 +1377,10 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
     #ADD BLOCK 
         self.btn_AddBlockToNode.clicked.connect(self.addBlockToNode)
-    #Mine Block
-        self.btn_Mine.clicked.connect(self.mineBlocks)
-    
-    #Changing Block Data
-        self.btn_ChangeBlock.clicked.connect(self.changeBlock)
+
 
         if self.loadedData is not None:
-            self.setLoadedData()
+            self.setLoadedData(setting)
             self.b.mineChain()
 
 
@@ -1403,11 +1403,25 @@ class MyApp(QMainWindow, Ui_scr_Main):
         self.closed.emit()
         super().closeEvent(event)
     
-    #def loadData(self, filePath):
-    #    with open(filePath, 'r') as file:
-    #        loadedData = json.load(file)
+    def loadData(self):
+        file_path, _ =QFileDialog.getOpenFileName(self, "Open File", "", "JSON Files (*json);;All Files (*)")
+        if file_path:
+            with open(file_path, 'r') as file:
+                self.loadedData = json.load(file)
 
-        #self.block
+            self.newWindow = MyApp(LoadedData=self.loadedData, setting=2)
+            self.newWindow.show()
+            self.close()
+
+    def importdata(self):
+        setting = 0
+        file_path, _ =QFileDialog.getOpenFileName(self, "Open File", "", "JSON Files (*json);;All Files (*)")
+        if file_path:
+            with open(file_path, 'r') as file:
+                self.loadedData = json.load(file)
+                self.setLoadedData(setting)
+        
+ 
     
 
     #--------------APPLY SETTINGS-------------
@@ -1439,57 +1453,93 @@ class MyApp(QMainWindow, Ui_scr_Main):
     def saveBlockchain(self):
         options = QFileDialog().options()
         filepath, _ = QFileDialog.getSaveFileName(self, "Save As", "", "JSON Files (*.json);;All Files (*)", options=options)
+        try:
+            if filepath:
+                self.b.save_to_file(filepath)
+        except:
+            prompt = QDialog()
+            prompt.setWindowTitle("Save Failed")
+            prompt.setModal(True)
 
-        if filepath:
-            self.b.save_to_file(filepath)
+            #Message
+            lbl = QLabel("No Data To Save")
+            lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
+            #Layout
+            layout = QVBoxLayout()
+            layout.addWidget(lbl)
+            prompt.setLayout(layout)
+            prompt.exec()
 
-    def setLoadedData(self):
-        nodeData = self.loadedData.get("NodeData", [])
-        blockData = self.loadedData.get("BlockData", [])
-        appdata = self.loadedData.get("AppData", [])
+    #--------------Load-----------------
+    
+    def setLoadedData(self, setting):
+        try:
+            nodeData = self.loadedData.get("NodeData", [])
+            blockData = self.loadedData.get("BlockData", [])
+            appdata = self.loadedData.get("AppData", [])
 
-        if self.b is None:
-            self.b = Blockchain()
+            if self.b is None:
+                self.b = Blockchain()
+            for node in nodeData:
+                Time = datetime.now().strftime("%H:%M:%S")
+                addedNode = self.b.addNode(appData=self.appData, ntwTimeAdded=node["ntwTimeAdded"], trust=node["trust"], name=node["name"], Attacker=node["Attacker"], disabled= node["disabled"])
+                ntwTime = self.stopwatch.toString("hh:mm:ss")
+                self.lst_Overview.addItem(f"Operations at: NetworkTime - {ntwTime}, Time - {Time}")
+                self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time:  {ntwTime} - Name: {node} - ID: {addedNode.ID} - trust value: {addedNode.trust} - ACTION: added to the network")
+                self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time:  {ntwTime} - Name: {node} - ID:{addedNode.ID} - ACTION: Synced To The Network")
+                self.listWidget.addItem(f"ID: {str(addedNode.ID)}, Node: {addedNode.name}, trust: {addedNode.trust}")
         
-        for node in nodeData:
-            Time = datetime.now().strftime("%H:%M:%S")
-            addedNode = self.b.addNode(appData=self.appData, ntwTimeAdded=node["ntwTimeAdded"], trust=node["trust"], name=node["name"], Attacker=node["Attacker"], disabled= node["disabled"])
-            ntwTime = self.stopwatch.toString("hh:mm:ss")
-            self.lst_Overview.addItem(f"Operations at: NetworkTime - {ntwTime}, Time - {Time}")
-            self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time:  {ntwTime} - Name: {node} - ID: {addedNode.ID} - trust value: {addedNode.trust} - ACTION: added to the network")
-            self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time:  {ntwTime} - Name: {node} - ID:{addedNode.ID} - ACTION: Synced To The Network")
-            self.listWidget.addItem(f"ID: {str(addedNode.ID)}, Node: {addedNode.name}, trust: {addedNode.trust}")
-        
-            #Add to UI
-            newNode = DragNodeIcon(parent=self.fr_VisualArea, blockchain=self.b)
-            newNode.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Valid.png"))
+                #Add to UI
+                newNode = DragNodeIcon(parent=self.fr_VisualArea, blockchain=self.b)
+                newNode.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Valid.png"))
 
-            newNode.ID = addedNode.ID
+                newNode.ID = addedNode.ID
 
-            #Update List
-            nodelist = self.listWidget.item(self.listWidget.count() - 1)
-            self.nodeIconMappings[newNode] = nodelist
+                #Update List
+                nodelist = self.listWidget.item(self.listWidget.count() - 1)
+                self.nodeIconMappings[newNode] = nodelist
 
-            #Add Label
-            newNode.setToolTip(f"ID: {addedNode.ID}, Node: {addedNode.name}, trust: {addedNode.trust}")
+                #Add Label
+                newNode.setToolTip(f"ID: {addedNode.ID}, Node: {addedNode.name}, trust: {addedNode.trust}")
             
-            #For Drag And Drop
-            newNode.myAppInstance = self
-            newNode.show()
+                #For Drag And Drop
+                newNode.myAppInstance = self
+                newNode.show()
             
-            self.lineDrawer.addNodePositions(newNode.pos())
-            #print(f"Node added at index: {self.listWidget.count() - 1}, position: {newNode.pos()}")
+                self.lineDrawer.addNodePositions(newNode.pos())
+                #print(f"Node added at index: {self.listWidget.count() - 1}, position: {newNode.pos()}")
+                self.updateAllNodeIcons()
+
+            if setting == 2:
+                if self.b is not None and self.b.nodes is not None:
+                    for block in blockData:
+                        self.b.addloadedBlock(block)
+                else:
+                    self.appData.logMessages.append("Unable To Import Blockchain, No Nodes Available")
         
-        if self.b is not None:
-            for block in blockData:
-                self.b.addloadedBlock(block)
+                for message in appdata.get("appdata", []):
+                    self.appData.simplifiedbftMessages.append(message)
         
-        for message in appdata.get("appdata", []):
-            self.appData.simplifiedbftMessages.append(message)
-        
-        for log in appdata.get("logMessages",[]):
-            self.appData.logMessages.append(log)
+                for log in appdata.get("logMessages",[]):
+                    self.appData.logMessages.append(log)
+
+        except:
+            self.reset(self)
+            self.appData.logMessages.append("Data Is Invalid - New Network Started")
+            prompt = QDialog()
+            prompt.setWindowTitle("Load Failed")
+            prompt.setModal(True)
+
+            #Message
+            lbl = QLabel("Data Is Invalid")
+            lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+
+            #Layout
+            layout = QVBoxLayout()
+            layout.addWidget(lbl)
+            prompt.setLayout(layout)
+            prompt.exec()
 
 
 
@@ -2186,7 +2236,10 @@ class StartupWindow(QMainWindow, Ui_MainWindow2):
         if file_path:
             with open(file_path, 'r') as file:
                 self.loadedData = json.load(file)
-        self.newWindow = MyApp(LoadedData=self.loadedData)
+        else:
+            self.loadedData = None
+        setting = 2
+        self.newWindow = MyApp(LoadedData=self.loadedData, setting=setting)
         self.newWindow.show()
         self.newWindow.closed.connect(self.reopenStartupWindow)
         self.close()

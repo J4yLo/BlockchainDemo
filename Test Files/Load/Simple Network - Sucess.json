@@ -1,0 +1,80 @@
+{
+    "ChainData": {
+        "chain": "blockData",
+        "prefix": "0000",
+        "nodes": "NodeData",
+        "primeNode": null,
+        "view": 0
+    },
+    "NodeData": [
+        {
+            "ID": 0,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 1,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 2,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 3,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 4,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 5,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 6,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 7,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        }
+    ],
+    "BlockData": [],
+    "AppData": {
+        "simplifiedbftMessages": [],
+        "logMessages": []
+    }
+}

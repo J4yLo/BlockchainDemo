@@ -1,0 +1,328 @@
+{
+    "ChainData": {
+        "chain": "blockData",
+        "prefix": "0000",
+        "nodes": "NodeData",
+        "primeNode": null,
+        "view": 0
+    },
+    "NodeData": [
+        {
+            "ID": 0,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 1,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 2,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 3,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 4,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 5,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 6,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 7,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 8,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 9,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 10,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 11,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 12,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 13,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 14,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 15,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 16,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 17,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 18,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 19,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 20,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 21,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 22,
+            "ntwTimeAdded": "0",
+            "Attacker": false,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 23,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 24,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 25,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 26,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 27,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 28,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 29,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 30,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 31,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 32,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 33,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 34,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 35,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 36,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 37,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 38,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        }
+    ],
+    "BlockData": [],
+    "AppData": {
+        "simplifiedbftMessages": [],
+        "logMessages": []
+    }
+}
