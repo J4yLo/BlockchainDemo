@@ -295,7 +295,7 @@ class Ui_scr_Main(object):
         self.btn_AddBlockToNode.setText(_translate("scr_Main", "Add To Node"))
         self.tb_Overview.setTabText(self.tb_Overview.indexOf(self.Block), _translate("scr_Main", "Block"))
         self.btn_applySettings.setText(_translate("scr_Main", "APPLY"))
-        self.chk_PauseMining.setText(_translate("scr_Main", "Automatic Mining"))
+        self.chk_PauseMining.setText(_translate("scr_Main", "Automated Addition of Data"))
         self.mine_status.setText(_translate("scr_Main", "DISABLED"))
         self.label_3.setText(_translate("scr_Main", "*When Mining Is Enabled Some Features Will Be Disabled"))
         self.tb_Overview.setTabText(self.tb_Overview.indexOf(self.Settings), _translate("scr_Main", "AutoMine"))

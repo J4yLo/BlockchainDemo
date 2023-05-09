@@ -50,22 +50,6 @@
         {
             "ID": 5,
             "ntwTimeAdded": "0",
-            "Attacker": true,
-            "trust": 1,
-            "name": "1",
-            "disabled": null
-        },
-        {
-            "ID": 6,
-            "ntwTimeAdded": "0",
-            "Attacker": true,
-            "trust": 1,
-            "name": "1",
-            "disabled": null
-        },
-        {
-            "ID": 7,
-            "ntwTimeAdded": "0",
             "Attacker": false,
             "trust": 1,
             "name": "1",
@@ -78,7 +62,7 @@
             "data": "Initial Data",
             "hashcode": "e46a6b45cd65821064abb676b80e626d243bbee7433b49b9e52825cf0fad63e8",
             "previousHash": "0",
-            "timeAdded": "06:55:58"
+            "timeAdded": "09:45:54"
         }
     ],
     "AppData": {
