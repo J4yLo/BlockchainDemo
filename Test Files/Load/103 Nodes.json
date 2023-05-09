@@ -258,7 +258,7 @@
         {
             "ID": 31,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -266,7 +266,7 @@
         {
             "ID": 32,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -274,7 +274,7 @@
         {
             "ID": 33,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -282,7 +282,7 @@
         {
             "ID": 34,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -290,7 +290,7 @@
         {
             "ID": 35,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -298,7 +298,7 @@
         {
             "ID": 36,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -306,7 +306,7 @@
         {
             "ID": 37,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -314,7 +314,7 @@
         {
             "ID": 38,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -322,7 +322,7 @@
         {
             "ID": 39,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -330,7 +330,7 @@
         {
             "ID": 40,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -338,7 +338,7 @@
         {
             "ID": 41,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -346,7 +346,7 @@
         {
             "ID": 42,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -354,7 +354,7 @@
         {
             "ID": 43,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -362,7 +362,7 @@
         {
             "ID": 44,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -370,7 +370,7 @@
         {
             "ID": 45,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -378,7 +378,7 @@
         {
             "ID": 46,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -386,7 +386,7 @@
         {
             "ID": 47,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -394,7 +394,7 @@
         {
             "ID": 48,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -402,7 +402,7 @@
         {
             "ID": 49,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -410,7 +410,7 @@
         {
             "ID": 50,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -418,7 +418,7 @@
         {
             "ID": 51,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -426,7 +426,7 @@
         {
             "ID": 52,
             "ntwTimeAdded": "0",
-            "Attacker": true,
+            "Attacker": false,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -594,7 +594,7 @@
         {
             "ID": 73,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -602,7 +602,7 @@
         {
             "ID": 74,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -610,7 +610,7 @@
         {
             "ID": 75,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -618,7 +618,7 @@
         {
             "ID": 76,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -626,7 +626,7 @@
         {
             "ID": 77,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -634,7 +634,7 @@
         {
             "ID": 78,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -642,7 +642,7 @@
         {
             "ID": 79,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -650,7 +650,7 @@
         {
             "ID": 80,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -658,7 +658,7 @@
         {
             "ID": 81,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -666,7 +666,7 @@
         {
             "ID": 82,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -674,7 +674,7 @@
         {
             "ID": 83,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -682,7 +682,7 @@
         {
             "ID": 84,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -690,7 +690,7 @@
         {
             "ID": 85,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -698,7 +698,7 @@
         {
             "ID": 86,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -706,7 +706,7 @@
         {
             "ID": 87,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -714,7 +714,7 @@
         {
             "ID": 88,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -722,7 +722,7 @@
         {
             "ID": 89,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -730,7 +730,7 @@
         {
             "ID": 90,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -738,7 +738,7 @@
         {
             "ID": 91,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -746,7 +746,7 @@
         {
             "ID": 92,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -754,7 +754,7 @@
         {
             "ID": 93,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -762,7 +762,7 @@
         {
             "ID": 94,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -770,7 +770,7 @@
         {
             "ID": 95,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -778,7 +778,7 @@
         {
             "ID": 96,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -786,7 +786,7 @@
         {
             "ID": 97,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -794,7 +794,7 @@
         {
             "ID": 98,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -802,7 +802,7 @@
         {
             "ID": 99,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -810,7 +810,7 @@
         {
             "ID": 100,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
@@ -818,13 +818,117 @@
         {
             "ID": 101,
             "ntwTimeAdded": "0",
-            "Attacker": false,
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 102,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 103,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 104,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 105,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 106,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 107,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 108,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 109,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 110,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 111,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 112,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
+            "trust": 1,
+            "name": "1",
+            "disabled": null
+        },
+        {
+            "ID": 113,
+            "ntwTimeAdded": "0",
+            "Attacker": true,
             "trust": 1,
             "name": "1",
             "disabled": null
         }
     ],
-    "BlockData": [],
+    "BlockData": [
+        {
+            "nonce": "0",
+            "data": "Initial Data",
+            "hashcode": "e46a6b45cd65821064abb676b80e626d243bbee7433b49b9e52825cf0fad63e8",
+            "previousHash": "0",
+            "timeAdded": "06:16:37"
+        }
+    ],
     "AppData": {
         "simplifiedbftMessages": [],
         "logMessages": []

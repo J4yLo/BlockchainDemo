@@ -21,7 +21,9 @@ from datetime import datetime
 import simpy
 from StartUp import Ui_MainWindow2
 
-
+#------------------------------------------------------------------------
+#Class For Soring UI application Data
+#------------------------------------------------------------------------
 
 class ApplicationData:
     def __init__(self):
@@ -35,17 +37,8 @@ class ApplicationData:
             "simplifiedbftMessages": self.simplifiedbftMessages,
             "logMessages": self.logMessages,
         }
+        return appData   
 
-        
-    
-        return appData
-    
-
-        
-
-
-#------------------------------------------------------------------------
-#Class for adding network nodes
 #------------------------------------------------------------------------
 #Class For Adding Nodes To The Network
 #------------------------------------------------------------------------
@@ -65,6 +58,8 @@ class Node:
         self.prePrepare = []
         self.msgLog = {}
         self.commit = []
+
+        #Node Attributes
         self.ID = nodeID
         self.primary = (nodeID == prime)
         self.nodes = nodes
@@ -79,12 +74,16 @@ class Node:
         else:
             self.blockchain = blockchain
         
-        #Adding the proof of Stake mechanism to the nodes
+        #Adding the Trust evaluation mechanism to the nodes
         self.trust = trust
 
+    #Node Function to verify and add block
     def addBlockToNode(self, data):
         self.addBlock(data, self.Attacker)
 
+
+
+    #Node Function Export data into a JSON
     def toDict(self):
         return {
             'ID': self.ID,
@@ -96,10 +95,10 @@ class Node:
 
         }
 
-    #Select Multiple validators
+    #Select Multiple validators, if an error is detected a backup algorith will be used
     def selectPrimeNodes(self):
         pNodes = self.blockchain.getPrimeNodes()
-        numPrimeNodes = max(1, int(len(pNodes) * 0.1))
+        numPrimeNodes = max(4, int(len(pNodes) * 0.1))
         weight = [node.trust for node in pNodes]
 
         if not pNodes or not weight:
@@ -118,32 +117,35 @@ class Node:
         else:
             isPrime = random.choices(pNodes, weights=weight, k=numPrimeNodes)
             return isPrime
+        
+
     
     #Selecting the primary node for Byzantine Fault Tolerance
     def addBlock(self, data):
 
-        #For a single Validator
-        #primeNode = self.blockchain.selectPrimaryNode()
-        #if primeNode.ID == self.ID:
-
         #Initiate Blockchain
-        if len (self.blockchain.chain)==0:
+        if self.blockchain.chain is None:
             previousHash = "0"
             nonce = "0"
             myHash = hashlib.sha256(str(data).encode()).hexdigest()
-            block = Block(id, nonce, "Initial Data", myHash, previousHash)
+            block = Block("0", nonce, "Initial Data", myHash, previousHash)
             self.blockchain.chain.append(block)
+        else:
                 
 
-        primeNodes = self.selectPrimeNodes()
-        if primeNodes is not None and not self.disabled:
+            primeNodes = self.selectPrimeNodes()
+            if primeNodes is not None and not self.disabled:
 
-            
-            tempchain = copy.deepcopy(self.blockchain)
-            minedBlock, updatedchain = tempchain.addNewBlock(data, self.Attacker)
-            blockprep = json.dumps(minedBlock.__dict__)
+                #Create copy of chain for validation
+                tempchain = copy.deepcopy(self.blockchain)
+                #Add new block to the tempoary chain
+                minedBlock, updatedchain = tempchain.addNewBlock(data, self.Attacker)
 
-            prePrepare = {
+                #Convert Block to Json Object
+                blockprep = json.dumps(minedBlock.__dict__)
+
+                #Format Message
+                prePrepare = {
                 'view': self.blockchain.view ,
                 'sequence': self.msgNumber + 1,
                 'request' : blockprep,
@@ -151,88 +153,76 @@ class Node:
                 'data'  : data,
                 'sender' : self.ID,
 
-            }
+                }
 
-            msg = Message(MessageType.PrePrepare, self.ID, prePrepare, self.ID )
-            self.msgLog[self.msgNumber + 1] = [msg]
-            self.broadcast(msg)
-            return True
+                #Generate Request Message
+                msg = Message(MessageType.PrePrepare, self.ID, prePrepare, self.ID )
+                self.msgLog[self.msgNumber + 1] = [msg]
+                self.broadcast(msg)
+                return True
 
-        else: 
-            #decrease trust
-            #Debug Code
-            #print("There are no Prime Nodes")
-            return False
+            else: 
+                #Debug Code
+                #print("There are no Prime Nodes")
+                return False
 
     #Store the Primary Node
     def primeNode(self):
         return self == self.blockchain.primeNode
 
 
-    #Send a Message
+    
     #check to see if node still exists
     def nodePresent(self, target):
         return 0 <= target < len(self.nodes) and not self.nodes[target].disabled
     
+    #Send a Message
     def send(self, target, message):
-        node = target
         if self.nodePresent(target):
-            #Debug Code
-            #print(f"Node {self.ID} sending msg to node {target}")
-
-
             self.nodes[target].recieve(message)
 
-            simpleMsg = f"Node {self.ID} sending msg to node {target} : {message.data}"
-            self.addMessageToApplicationData(message, simpleMsg)
+            #Add data to UI
+            simpleMsg = f"Node {self.ID} sending msg to node {target}"
+            self.addMessageToApplicationData(None, simpleMsg)
 
 
     #Function to broadcast messages to the network
     def broadcast(self, msg,):
-
-        
+        primeNodes = self.blockchain.getPrimeNodes()
         for node in self.nodes:
-            if node != self and not node.disabled:
-                #print(f"Node {self.ID} sending msg to node {node.ID} : {msg.data}")
+            if node != self and not node.disabled and primeNodes:
                 self.send(target=node.ID, message=msg)
-                #simpleMsg = f"Node {self.ID} sending msg to node {node.ID}"
-                #self.addMessageToApplicationData(msg, simpleMsg)
+
+        #Add data to UI
         log = f"ID: {self.ID} - Broadcasting To All Nodes"
         self.addMsgToLog(log)
                 
 
 
-    #Recieve a Message
+    #Recieve a Message and process it
     def recieve(self, msg):
 
         request = ""
-        primeNodes = self.blockchain.getPrimeNodes()
-        if self in primeNodes:
-            if msg.type == MessageType.Request:
-                request ="Request"
-                self.handleRequest(msg)
-            elif msg.type == MessageType.PrePrepare:
-                self.handlePrePrepare(msg)
-                request ="PrePrepare"
-            elif msg.type == MessageType.Prepare:
-                self.handlePrepare(msg)
-                request ="Prepare"
-            elif msg.type == MessageType.Commit:
-                self.handleCommit(msg)
-                request ="Commit"
-            elif msg.type == MessageType.Reply:
-                self.handleReply(msg)
-                request ="Reply"
-            else:
-                #Debug Code
-                #print (f"Compremised Request")
-                #Decrease Trust
-                #self.startVoteToDecreaseTrust(msg)
-                request ="Invalid"
+        if msg.type == MessageType.Request:
+            request ="Request"
+            self.handleRequest(msg)
+        elif msg.type == MessageType.PrePrepare:
+            self.handlePrePrepare(msg)
+            request ="PrePrepare"
+        elif msg.type == MessageType.Prepare:
+            self.handlePrepare(msg)
+            request ="Prepare"
+        elif msg.type == MessageType.Commit:
+            self.handleCommit(msg)
+            request ="Commit"
+        elif msg.type == MessageType.Reply:
+            self.handleReply(msg)
+            request ="Reply"
+        else:
+            request ="Invalid"
         
 
-        #print(f"Node: {self.ID} recieved msg from Node: {msg.sender}")
-        
+        #Add data to UI
         simpleMsg = f"Node: {self.ID} recieved msg from Node: {msg.sender}: Status: {request}"
         self.addMessageToApplicationData(None, simpleMsg)
             
@@ -271,14 +261,19 @@ class Node:
 
         
     #PRE PREPARE MSG
-    def handlePrePrepare(self, msg,):
+    def handlePrePrepare(self, msg):
+        #Determine if the preprepare is valid
+        simpleMsg = f"Node: {self.ID} in handle preprepare phase"
+        self.addMessageToApplicationData(None, simpleMsg)
 
-
-        #Debug code
-        #print(f"Node {self.ID} node Handling PrePrepare")
+        
         vote = self.validPrePrepare(msg)
+
+        #Reconvert the block
         blockData = json.loads(msg.data['request'])
         tempBlock = Block(**blockData)
+
+        #Prepare Msg format
         Prepare = {
         'type': 'Prepare',
         'view': msg.data['view'] ,
@@ -290,13 +285,12 @@ class Node:
         'chainCopy' : msg.data['chainCopy'],
         'Vote': vote
         }
+        #Prepare msg
         self.prepareMsg(Prepare)
-        #Debug Code
-        #print((f"Node {self.ID} node returned invalid PrePrepare"))
-        simpleMsg = f"Node: {self.ID} node returned invalid PrePrepare"
-        self.addMessageToApplicationData(None, simpleMsg)
 
+    #Checks to see if block fits in context of the chain and the message is valid
     def validPrePrepare(self, msg):
+        #Attacker function, always returns true
         if self.Attacker:
             return True
         
@@ -319,13 +313,18 @@ class Node:
 
     #PREPARE MSG
     def prepareMsg(self, msg):
-
+        #print(f"Node: {self.ID} in handle prepare phase")
+        simpleMsg = f"Node: {self.ID} in handle prepare phase"
+        self.addMessageToApplicationData(None, simpleMsg)
 
         #add message sequence
         self.msgNumber += 1
         msgValue = self.msgNumber
 
+        #Append it to buffer
         self.prepare.append(msg)
+
+        #Format Msg
         prepareMsg = {
                 'type': 'Commit',
                 'view': self.blockchain.view ,
@@ -337,25 +336,24 @@ class Node:
                 'origin': msg['origin'],
                 'vote': msg['Vote'],
             }
+        
+        #Broadcast Msg
         prepareMsgOBJ = Message(MessageType.Commit, self.ID, prepareMsg, msg['origin'])
         self.broadcast(prepareMsgOBJ)
 
+    #Handel Prepare method
     def handlePrepare(self, msg):
-
 
         if msg not in self.prepare or self.Attacker:#:
             self.prepare.append(msg)
             vote = self.validPrepare(msg) 
-
-            #Debug Code
-            #print(f"Node {self.ID} node Handling Prepare")
 
             #Check for minimum required nodes
             if len(self.prepare) >= self.getSize(self.blockchain.getPrimeNodes()):
                 #add message sequence
                 self.msgNumber += 1
                 msgValue = self.msgNumber
-                #self.handleCommit(msg)
+
                 commitMsg = {
                     'type': 'Prepare',
                     'view': self.blockchain.view ,
@@ -369,30 +367,29 @@ class Node:
             commitMsgOBJ = Message(MessageType.Commit, commitMsg, self.ID, msg['origin'])
             self.broadcast(commitMsgOBJ)
         else:
-            #Debug Code
-            #print("Message Unable to prepare")
+
             simpleMsg = f"Node: {self.ID} Message Failed Preperation"
             self.addMessageToApplicationData(None, simpleMsg)
 
     #COMMIT MSG
     def handleCommit(self, msg):
-
-
-        if self.validCommit(msg) and msg not in self.commit or self.Attacker:
+        #Commit Checks
+        #print(f"Node: {self.ID} in handle Commit phase")
+        simpleMsg = f"Node: {self.ID} in handle Commit phase"
+        if self.validCommit(msg) and msg not in self.commit:
             self.commit.append(msg)
+            self.blockchain.commitVotes.append(msg)
             if len(self.commit) >= self.getSize(self.blockchain.getPrimeNodes()):
-                #Debug Code
-                #print(f"Node {self.ID} node Handling Commit")
-                #print(f"length of commit =", len(self.commit))
+
+
+                
 
                 #add message sequence
                 self.msgNumber += 1
                 msgValue = self.msgNumber
-
-                #Commit Block
-
                 
 
+                #count votes on nodes performance
                 valid = self.votingResult()
 
                 #Increase Trust
@@ -408,8 +405,6 @@ class Node:
                     self.commit = []
                 elif valid == 2:
                     #Waiting For Node List To populate
-                    #print("Delaying commit until all nodes have processed messages")
-
                     log = f"ID: {self.ID} - Delaying Commit, Waiting for all nodes to reply"
                     self.addMsgToLog(log)
                     
@@ -436,8 +431,20 @@ class Node:
                         log = f"ID: {node.ID}, Name: {node.name} - Disconnected From Network, Trust is too low"
                         self.addMsgToLog(log)
 
-                
+                    
 
+                            
+                #check for nodes Below trust threshhold and remove them
+                for node in self.nodes:
+                    if not node.disabled and node.trust == 0:
+                        node.disabled = True
+                        log = f"ID: {node.ID}, Name: {node.name} - Disconnected From Network, Trust is too low"
+                        self.addMsgToLog(log)
+
+                #reset commits and prepares
+                self.prepare = []
+                self.commit = []
+                #Reply Message Format
                 reply = {
                     'type': 'Commit',
                     'view': self.blockchain.view ,
@@ -447,101 +454,89 @@ class Node:
                     'sender' : self.ID,
                     
                 }
+
+                #Reply Message Format
                 replyMsgOBJ = Message(MessageType.Reply, self.ID, reply, msg.data['origin'])
                 self.send(msg.data['origin'], replyMsgOBJ)
-
-                #self.blockchain.addBlock(tempBlock)
+            #If node hasnt recieved enough messages for consensus
             else:
-                #Debug Code
-                #print(f"Node: {self.ID} not enough prepares")
                 simpleMsg = f"Node: {self.ID} not enough prepares"
                 self.addMessageToApplicationData(None, simpleMsg)
         else:
-            #Debug Code
-            #print(f"Node: {self.ID} invalid commit")
             simpleMsg = f"Node: {self.ID} invalid commit"
             self.addMessageToApplicationData(None, simpleMsg)
 
+    #Commit Checks
     def validCommit(self, msg):
         if self.Attacker:
             return True
 
         if msg.type != MessageType.Commit:
-            #Debug Code
-            #print(f"Node: {self.ID} invalid type")
             simpleMsg = f"Node: {self.ID} invalid type"
             self.addMessageToApplicationData(None, simpleMsg)
             return False
         
         if msg.data['view'] != self.blockchain.view:
-            #Debug Code
-            #print(f"Node: {self.ID} invalid view")
             simpleMsg = f"Node: {self.ID} invalid view"
             self.addMessageToApplicationData(None, simpleMsg)
             return False
         
         if not (0 <= msg.data['sequence'] <= self.msgNumber + 1):
-            #Debug Code
-            # print(f"Node: {self.ID} invalid sequence")
             simpleMsg = f"Node: {self.ID} invalid sequence"
             self.addMessageToApplicationData(None, simpleMsg)
             return False
         
         if msg.data['sender'] not in [node.ID and not node.disabled for node in self.nodes]:
-            #Debug Code
-            #print(f"Node: {self.ID} invalid sender")
             simpleMsg = f"Node: {self.ID} invalid sender"
             self.addMessageToApplicationData(None, simpleMsg)
             return False
+
         
         return True
     
     #Get Total of faulty nodes that the network can handle
     def getSize(self, nodes):
         #Find total nodes
+        primaryCount = self.blockchain.getPrimeNodes()
+        networkNodeTotal = len([node for node in primaryCount if not node.disabled])
 
-        networkNodeTotal = len([node for node in nodes if not node.disabled])
-
-        #calculate the maximum nodes Byzantine Fault Tolerance can handle (2f + 1)
-        faultyNodes = (networkNodeTotal - 1) // 4
+        #calculate the maximum nodes Byzantine Fault Tolerance can handle (n >= 3f + 1)
+        faultyNodes = (networkNodeTotal - 1) // 3
         #Calculate size
         size = 3 * faultyNodes + 1
-
         return size
     
-    def getMajority(self, nodes):
-        networkNodeTotal = len([node for node in nodes if not node.disabled])
-        majority = (networkNodeTotal // 2 + 1)
-        #Debug Code
-        #print ("majority:", majority)
-        return majority
     
     #Voting To Increase/ Decrease Trust
     def votingResult(self):
         primaryCount = self.blockchain.getPrimeNodes()
-        if len(self.commit) != len(primaryCount) -1:
+        
+
+
+        if len(self.commit) < len(primaryCount) :
             return 2
         else:
             commitVotes = 0
             FalsecommitVotes = 0
             for msg in self.commit:
                 vote = msg.data['vote']
+                #print(vote)
                 if vote:
                     commitVotes += 1
                 else:
                     FalsecommitVotes +=1
-            if commitVotes < FalsecommitVotes:
-                return 3
+
+        if commitVotes > FalsecommitVotes:
+
+            Block = msg.data['block']
+            data = any(block.data == Block.data for block in self.blockchain.chain)
+            if not data:
+                self.blockchain.chain.append(Block)
+                return 1
             else:
-                Block = msg.data['block']
-            
-                #print ("Block To Add:", str(Block))
-                data = any(block.data == Block.data for block in self.blockchain.chain)
-                if not data:
-                    self.blockchain.chain.append(Block)
-                    return 1
-                else:
-                    return 4
+                return 4
+        else:
+            return 3
 
 
     #check to see if msg is of type prepare
@@ -565,12 +560,17 @@ class Node:
         if content['sender'] not in [node.ID and not node.disabled for node in self.nodes]:
             return False
         
+        if not self.blockchain.verifyMineBlock(content['data']):
+            simpleMsg = f"Node {self.ID} Found inconsistancies in block data"
+            self.addMessageToApplicationData(None, simpleMsg)
+            return False
+        
         return True
     
     def handleReply(self,msg):
         #Debug Code
-        #print(f"Node {self.ID} recieved reply: {msg.data['Data']}")
-        simpleMsg = f"Node {self.ID} recieved reply: {str(msg.data['Data'])}"
+        #Add Message To UI
+        simpleMsg = f"Node {self.ID} recieved reply"
         self.addMessageToApplicationData(None, simpleMsg)
 
     #To Commit Block
@@ -579,11 +579,11 @@ class Node:
         if msg.data['block'] not in self.blockchain.chain:
             if not self.blockchain.hasBlock(msg.data['block']):
                 self.blockchain.chain.append(msg.data['block'])
-                #print(self.blockchain.chain)
                 return True
         else:
             return False
     
+    #Trust evaluation mechanisms
     def awardTrust(self, trust):
         total_trust = sum(node.trust for node in self.nodes if not node.disabled)
         max_trust = math.floor(0.5* total_trust)
@@ -597,20 +597,10 @@ class Node:
             self.trust = max_trust
     
     def sanctionTrust(self, trust):
+        if trust > 0:
+            self.trust -= trust
 
-        self.trust -= trust
-
-    #Attacker Functions
-    def dataChangeAttack(self, targetblockID, data):
-        if self.Attacker:
-            self.blockchain.changeData(targetblockID, data)
-            #Debug Code
-            #print(f"Node {self.ID} (attacker) altering data in block {targetblockID}")
-        
-        #else:
-            
-            #print(f"Node isnt of attacker type")
-
+    #Add to UI
     def addMessageToApplicationData(self, message, smplMsg):
         if message is not None:
             self.appData.bftMessages.append(message)
@@ -640,6 +630,7 @@ class Message:
         self.datetime = datetime.now()
         self.origin = origin
     
+    #To Convert Messages into an exportable format
     def toDict(self):
 
 
@@ -647,7 +638,7 @@ class Message:
             "type": self.type.value ,
             "sender": self.sender,
             "data": self.data,
-            "datetime": "0",
+            "datetime": self.datetime,
             "origin": self.origin,
         }
         
@@ -691,14 +682,28 @@ class Blockchain:
         self.nodes=[]
         self.primeNode = None
         self.view = 0
+        self.commitVotes = []
 
+        previousHash = "0"
+        nonce = "0"
+        myHash = hashlib.sha256(str("Initial Data").encode()).hexdigest()
+        block = Block("0", nonce, "Initial Data", myHash, previousHash)
+        self.chain.append(block)
+
+
+    #Get Chain Length
     def __len__(self):
         return len(self.chain)
     
+    #Save Functions
     def save_to_file(self, filepath):
         data = self.toDict()
+        
         with open(filepath, 'w') as file:
             json.dump(data, file, indent=4)
+
+
+    #Export Data For Save
 
     def toDict(self):
         blockData = [block.toDict() for block in self.chain]
@@ -720,7 +725,7 @@ class Blockchain:
 #
         
 
-
+    #Remove node from participating in the network
     def removeNode(self, node):
         if node in self.nodes:
 
@@ -740,7 +745,7 @@ class Blockchain:
                 return node
         return None
     
-    #Get Prime Nodes
+    #Gets Non disabled Nodes on the network
     def getPrimeNodes(self):
         #sort the nodes in decending order based upon their trust
         sortedNodes = sorted(filter(lambda node: not node.disabled, self.nodes), key=lambda node: node.trust, reverse=True)
@@ -749,12 +754,14 @@ class Blockchain:
         bestNodes = max(4, int(len(sortedNodes) * 0.1))
         return sortedNodes[:bestNodes]
 
+    #Backup algorithm for getting prime nodes, for stronger resillience
     def backupPrimeNode(self):
         networkTrust = sum(node.trust and not node.disabled for node in self.nodes)
         threshold = random.uniform(0, networkTrust)
         currentNodeTrust = 0
         maxTrustNode = None
         maxTrust = -1
+        #print("using backup")
 
         for node in self.nodes:
             if not node.disabled:
@@ -775,31 +782,23 @@ class Blockchain:
                 #print("No trustworthy node found")
                 return []
 
-    #Proof Of stake mechanism
+    #Proof Of stake mechanism, provide work to a random node
     def provideWork(self):
         networkTrust = sum(node.trust and not node.disabled for node in self.nodes)
-        primeNodes = self.nodes[0].selectPrimeNodes()
-        #threshold = random.uniform(0, networkTrust)
-        #currentNodeTrust = 0
+        primeNodes = self.selectPrimeNodes()
 
         weighted = [(node, node.trust / networkTrust) for node in primeNodes]
         selected = random.choices(primeNodes, [weight for node, weight in weighted], k=1)[0]
         return selected
         
-        #Selects a node if the trust value is higher than a threshold
-        #for node in self.nodes:
-        #    currentNodeTrust = node.trust
-        #    if currentNodeTrust >= threshold:
-        #        return node
-
     #Syncronising Nodes with the established blockchain
     def addNode(self, appData, ntwTimeAdded, Attacker, trust=0, name=None, disabled=None):
         nodeID = len(self.nodes)
+
+        #Code to prevent same ID coming up twice
         if nodeID in self.nodes:
             nodeID += 2
  
-            
-        
         prime = False
         node = Node(appData, nodeID, prime, self.nodes, ntwTimeAdded, Attacker, trust, blockchain=self, name=name, disabled=disabled)
         
@@ -810,31 +809,20 @@ class Blockchain:
     
     #Verification Algorithms
 
-    #Check if block has been mined
+    #Check if block has been mined POW
     def mineCheck(self, msg):
-        content = msg.data['data']
-        #print(f"data contents: {msg.data['request']}")
         
         data = json.loads(msg.data['request'])
         Addedblock = Block(**data)
-        #print(str(Addedblock))
-        
-
+    
         if 0 <= Addedblock.id < len(self.chain) + 1:
             if self.VerifyBlockHash(Addedblock):
                 return True
-        #Debug
-            #else:
-                #print(f"Invalid block hash: {Addedblock.hashcode}")
-        #else:
-            #print(f"Invalid block ID: {Addedblock.id}")
         return False
     
 
-    
     #Verify The chain
     def VerifyBlockHash(self, block):
-
         return block.hashcode.startswith(self.prefix)
     
     #Function to mine block
@@ -853,44 +841,28 @@ class Blockchain:
                     if (block.id<len(self.chain)-1):
                         self.chain[block.id+1].prev = myHash
 
+    #Add Block Only after load function
     def addloadedBlock(self, data):
         id = len(self.chain)
         nonce = 0
         block = Block(id, nonce, data["data"], data["hashcode"], data["previousHash"])
         self.chain.append(block)
     
+    #Add New Block to Network
     def addNewBlock(self, data, Attacker):
-        if len (self.chain)==0:
-            previousHash = "0"
-            nonce = "0"
-            myHash = hashlib.sha256(str(data).encode()).hexdigest()
-            block = Block("0", nonce, "Initial Data", myHash, previousHash)
-            self.chain.append(block)
+ 
 
         id = len(self.chain)
         nonce = 0
         
-        #Debug Code
-        #Check to See if Nodes Exist On the Network
-        #if not self.nodes:
-            #print("no nodes available")
-        #    return
-        
-
-        
-
-        #Check to see if the block is index 0, Makes this the genesis block
-        #If false then value of the previous hash is equal to the output of
-        #The previous block
-        
         
         if Attacker:
-            myHash = "Mallicious"
+            myHash = f"MALLICIOUS ENTRY - {len(self.chain)}"
             previousHash = "MALLICIOUS ENTRY"
 
             block = Block(id, nonce, data, myHash, previousHash)
             #minedBlock = self.mineBlockOnNode(block)
-            self.chain.append(block)
+            #self.chain.append(block)
             return block, self
         else:
             previousHash = self.chain[-1].hashcode
@@ -898,7 +870,7 @@ class Blockchain:
 
             block = Block(id, nonce, data, myHash, previousHash)
             minedBlock = self.mineBlockOnNode(block)
-            self.chain.append(minedBlock)
+            #self.chain.append(minedBlock)
         #Code to Initiate the block
         
         
@@ -912,17 +884,13 @@ class Blockchain:
         #print (chainDict)
 
     
-
+    #For loading in new block data to the application
     def mineChain(chain):
         #Check If the chain has been comprimised
         #If chain is broken trust decreases otherwise mining persues
         minedBlocks = []
         brokenLink = chain.checkIfBroken()
         if brokenLink is None:
-            for node in chain.nodes:
-
-                #Increase trust after sucessful Mine
-                node.trust +=1
             minedBlocks.append("All Blocks have been Mined")
             pass
         else :
@@ -931,14 +899,9 @@ class Blockchain:
                 prevHash = block.previousHash
                 chain.mineBlock(block)
 
-
-                if block.previousHash == prevHash: 
-                    minedBlocks.append(f"Mined Block: {block.id}, Nonce: {block.nonce}, data: {block.data}, Hash: {block.hashcode}, previous hash: {block.previousHash} ")
-                else:
-                    minedBlocks.append(f"Block with ID of {block.id}, Failed To Mine")
         return "\n".join(minedBlocks)
     
-    # For Benzyntine Fault Tollerance
+    # For mining block on a node
     def mineBlockOnNode(self, block):
         nonce = 0
         myHash = hashlib.sha256(str(str(nonce)+str(block.data)).encode()).hexdigest()
@@ -954,7 +917,6 @@ class Blockchain:
             
 
 
-    #If Byzentine Fault Tollerance Is Disabled
     #Function to mine block
     def mineBlock(self, block):
         
@@ -1052,7 +1014,7 @@ class PropertiesDialog(QMainWindow, Ui_Properties):
                 id = str(selectedNode.ID)
                 trust = str(selectedNode.trust)
                 addedNtwTime = selectedNode.ntwTimeAdded
-                timeadded = str(selectedNode.timeAdded)
+                timeadded = selectedNode.timeAdded.strftime("%H:%M:%S")
                 
                 #Set Variables
                 self.prp_NodeName.setText(name)
@@ -1384,7 +1346,6 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
         if self.loadedData is not None:
             self.setLoadedData(setting)
-            self.b.mineChain()
 
 
     #----------------------------------------
@@ -1501,7 +1462,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
                 self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time:  {ntwTime} - Name: {node} - ID: {addedNode.ID} - trust value: {addedNode.trust} - ACTION: added to the network")
                 self.lst_Overview.addItem(f"Time: {str(Time)} - Network Time:  {ntwTime} - Name: {node} - ID:{addedNode.ID} - ACTION: Synced To The Network")
                 self.listWidget.addItem(f"ID: {str(addedNode.ID)}, Node: {addedNode.name}, trust: {addedNode.trust}")
-        
+                
                 #Add to UI
                 newNode = DragNodeIcon(parent=self.fr_VisualArea, blockchain=self.b)
                 newNode.setPixmap(QtGui.QPixmap("Assets/Images/Icons/Node_Icon_Valid.png"))
@@ -1511,6 +1472,8 @@ class MyApp(QMainWindow, Ui_scr_Main):
                 #Update List
                 nodelist = self.listWidget.item(self.listWidget.count() - 1)
                 self.nodeIconMappings[newNode] = nodelist
+
+                  
 
                 #Add Label
                 newNode.setToolTip(f"ID: {addedNode.ID}, Node: {addedNode.name}, trust: {addedNode.trust}")
@@ -1522,6 +1485,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
                 self.lineDrawer.addNodePositions(newNode.pos())
                 #print(f"Node added at index: {self.listWidget.count() - 1}, position: {newNode.pos()}")
                 self.updateAllNodeIcons()
+    
 
             if setting == 2:
                 if self.b is not None and self.b.nodes is not None:
@@ -1535,9 +1499,11 @@ class MyApp(QMainWindow, Ui_scr_Main):
         
                 for log in appdata.get("logMessages",[]):
                     self.appData.logMessages.append(log)
+            
+            self.updateSimpleMessagesTable()
 
         except:
-            self.reset(self)
+            
             self.appData.logMessages.append("Data Is Invalid - New Network Started")
             prompt = QDialog()
             prompt.setWindowTitle("Load Failed")
@@ -1552,6 +1518,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
             layout.addWidget(lbl)
             prompt.setLayout(layout)
             prompt.exec()
+            self.loadData()
 
 
 
@@ -1628,7 +1595,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
         
     def addBlockToNode(self):
-        ID = str(self.txt_NodeID.toPlainText().strip())
+        id = str(self.txt_NodeID.toPlainText().strip())
         Data = self.txt_blkData.toPlainText().strip()
 
         
@@ -1639,7 +1606,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
 
         #Check for correct input 
         try:
-            ID = int(ID)
+            id = int(id)
             Valid = True
 
         #Prompt Error
@@ -1662,7 +1629,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
         #Check to see if block chain exists
         if self.b is not None and Valid:
             
-            node = self.b.getNodeByID(ID)
+            node = self.b.getNodeByID(id)
             if node:
                 ntwTime = self.stopwatch.toString("hh:mm:ss")
                 Time = datetime.now().strftime("%H:%M:%S")
@@ -1718,7 +1685,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
     def mineBlocks(self):
         #Check to see if block chain exists
         if self.b is not None:
-            result = self.b.mineChain()
+            result = int(self.b.mineChain())
             self.lst_Overview.addItem(result)
             self.updateBlockChainTable()
 
@@ -2032,24 +1999,20 @@ class MyApp(QMainWindow, Ui_scr_Main):
     #----------------------------------------
     #Automated Network Functions
     #----------------------------------------
-    #def restartTimer(self):
-        #self.autoAddData.stop()
-        #self.autoAddData.start(5000)
+
     def automaticAdditionOfData(self):
         
         if self.b is not None and self.b.nodes is not None:
                 if not self.envProcessing:
                     self.simulation_Thread = SimulationThread(self.env, self.performAddData, self.signalhandler, self)
-                    #self.simulation_Thread.finished.connect(self.restartTimer)
                     self.simulation_Thread.start()
+
                     #Debug Code
                     #print("automaticAdditionOfData Called")
-                else:
-                    print("Waiting For Env to stop")
+
                 
         else:
             self.errorPromptForAutoMine()
-            #self.simulationRunning = True
     
     def performAddData(self, env, getTime):
         #Debug Code
@@ -2059,7 +2022,7 @@ class MyApp(QMainWindow, Ui_scr_Main):
             sortedList = [node for node in self.b.nodes if node is not None and not node.disabled]
             if sortedList is not None and len(sortedList) > 0:
 
-                print("Start Add Data")
+                #print("Start Add Data")
                 
                 #Data To Add To Overview
                 ntwTime = self.stopwatch.toString("hh:mm:ss")
@@ -2106,17 +2069,12 @@ class MyApp(QMainWindow, Ui_scr_Main):
                 #Simulate Time to add block
             timeTaken = env.now - starttime
             getTime(True, timeTaken)
-            print(f"Time reported: {timeTaken}, start: {starttime}")
+            #print(f"Time reported: {timeTaken}, start: {starttime}")
             yield env.timeout(2000)
-            print("cycle Finished")
+            #print("cycle Finished")
             
-            print("End Add Data")
+            #print("End Add Data")
         
-            
-            #Debug Code
-            #if not self.simulation_paused:
-                #print("pause")
-
                 
                 
 
@@ -2234,6 +2192,22 @@ class StartupWindow(QMainWindow, Ui_MainWindow2):
         self.setupUi(self)
         self.btn_StartNew.clicked.connect(self.startNew)
         self.btn_LoadData.clicked.connect(self.loadFrom)
+
+        prompt = QDialog()
+        prompt.setWindowTitle("Do not put personal data in this program")
+        prompt.setModal(True)
+
+        #Message
+        lbl = QLabel("Although the data is not collected for use, inputting personal details can put it at risk, by closing this prompt you agree to these terms.")
+        lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+
+
+        #Layout
+        layout = QVBoxLayout()
+        layout.addWidget(lbl)
+        prompt.setLayout(layout)
+        prompt.exec()
+
 
     #Open New
     def startNew(self):

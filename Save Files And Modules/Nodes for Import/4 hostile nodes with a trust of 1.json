@@ -12,7 +12,7 @@
             "ntwTimeAdded": "0",
             "Attacker": true,
             "trust": 1,
-            "name": "AttackerNode",
+            "name": "Delta",
             "disabled": null
         },
         {
@@ -20,7 +20,7 @@
             "ntwTimeAdded": "0",
             "Attacker": true,
             "trust": 1,
-            "name": "AttackerNode",
+            "name": "Xray",
             "disabled": null
         },
         {
@@ -28,7 +28,7 @@
             "ntwTimeAdded": "0",
             "Attacker": true,
             "trust": 1,
-            "name": "AttackerNode",
+            "name": "Zelta",
             "disabled": null
         },
         {
@@ -36,11 +36,19 @@
             "ntwTimeAdded": "0",
             "Attacker": true,
             "trust": 1,
-            "name": "AttackerNode",
+            "name": "Tango",
             "disabled": null
         }
     ],
-    "BlockData": [],
+    "BlockData": [
+        {
+            "nonce": "0",
+            "data": "Initial Data",
+            "hashcode": "e46a6b45cd65821064abb676b80e626d243bbee7433b49b9e52825cf0fad63e8",
+            "previousHash": "0",
+            "timeAdded": "06:15:47"
+        }
+    ],
     "AppData": {
         "simplifiedbftMessages": [],
         "logMessages": []
