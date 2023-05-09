@@ -183,7 +183,7 @@ class Node:
 
             #Add data to UI
             simpleMsg = f"Node {self.ID} sending msg to node {target}"
-            self.addMessageToApplicationData(None, simpleMsg)
+            self.addMessageToApplicationData(message, simpleMsg)
 
 
     #Function to broadcast messages to the network
@@ -1485,6 +1485,12 @@ class MyApp(QMainWindow, Ui_scr_Main):
                 self.lineDrawer.addNodePositions(newNode.pos())
                 #print(f"Node added at index: {self.listWidget.count() - 1}, position: {newNode.pos()}")
                 self.updateAllNodeIcons()
+                self.updateBlockChainTable()
+                self.updateMessagesTable()
+                self.updateSimpleMessagesTable()
+                self.updateTrustValuesInList()   
+                self.updateAllNodeIcons()
+                self.updateListOverview()
     
 
             if setting == 2:

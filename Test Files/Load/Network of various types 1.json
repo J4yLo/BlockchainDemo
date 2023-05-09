@@ -12,7 +12,7 @@
             "ntwTimeAdded": "0",
             "Attacker": false,
             "trust": 1,
-            "name": "1",
+            "name": "Normal Node",
             "disabled": null
         },
         {
@@ -20,7 +20,7 @@
             "ntwTimeAdded": "0",
             "Attacker": false,
             "trust": 1,
-            "name": "1",
+            "name": "Normal Node",
             "disabled": null
         },
         {
@@ -28,7 +28,7 @@
             "ntwTimeAdded": "0",
             "Attacker": false,
             "trust": 1,
-            "name": "1",
+            "name": "Normal Node",
             "disabled": null
         },
         {
@@ -36,7 +36,7 @@
             "ntwTimeAdded": "0",
             "Attacker": false,
             "trust": 1,
-            "name": "1",
+            "name": "Normal Node",
             "disabled": null
         },
         {
@@ -44,7 +44,7 @@
             "ntwTimeAdded": "0",
             "Attacker": false,
             "trust": 0,
-            "name": "1",
+            "name": "Disabled",
             "disabled": true
         },
         {
@@ -52,15 +52,15 @@
             "ntwTimeAdded": "0",
             "Attacker": true,
             "trust": 1,
-            "name": "1",
+            "name": "Faulty Node",
             "disabled": null
         },
         {
             "ID": 6,
             "ntwTimeAdded": "0",
             "Attacker": true,
-            "trust": -2,
-            "name": "1",
+            "trust": 0,
+            "name": "Disabled",
             "disabled": true
         },
         {
@@ -68,7 +68,7 @@
             "ntwTimeAdded": "0",
             "Attacker": false,
             "trust": 1,
-            "name": "1",
+            "name": "Normal Node",
             "disabled": null
         },
         {
@@ -76,7 +76,7 @@
             "ntwTimeAdded": "0",
             "Attacker": false,
             "trust": 1,
-            "name": "1",
+            "name": "Normal Node",
             "disabled": null
         },
         {
@@ -84,7 +84,7 @@
             "ntwTimeAdded": "0",
             "Attacker": false,
             "trust": 1,
-            "name": "1",
+            "name": "Normal Node",
             "disabled": null
         },
         {
@@ -92,7 +92,7 @@
             "ntwTimeAdded": "0",
             "Attacker": false,
             "trust": 1,
-            "name": "1",
+            "name": "Normal Node",
             "disabled": null
         },
         {
@@ -100,7 +100,7 @@
             "ntwTimeAdded": "0",
             "Attacker": false,
             "trust": 1,
-            "name": "1",
+            "name": "Normal Node",
             "disabled": null
         },
         {
@@ -108,7 +108,7 @@
             "ntwTimeAdded": "0",
             "Attacker": false,
             "trust": 2,
-            "name": "1",
+            "name": "Normal Node",
             "disabled": null
         },
         {
@@ -116,7 +116,7 @@
             "ntwTimeAdded": "0",
             "Attacker": false,
             "trust": -6,
-            "name": "1",
+            "name": "Disabled",
             "disabled": true
         }
     ],
